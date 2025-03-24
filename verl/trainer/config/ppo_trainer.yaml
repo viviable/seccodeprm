@@ -133,7 +133,7 @@ reward_model:
     warmup_style: constant  # select from constant/cosine
     total_training_steps: -1  # must be override by program
   model:
-    path: /mnt/step2-alignment-jfs/chengjie/PURE-PRM-7B
+    path: jinachris/PURE-PRM-7B
     external_lib: ${actor_rollout_ref.model.external_lib}
     use_remove_padding: True
     fsdp_config:
