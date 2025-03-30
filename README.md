@@ -10,7 +10,7 @@
 
 ## 🎉 News:
 
-- [2025/03/24] We re-implement our algorithm based on verl. See [verl branch](https://github.com/CJReinforce/PURE/tree/verl). ✨✨ Key features: 1. Add ~50 additional metrics to comprehensively monitor the training process and stability. 2. Add [a custom wandb workerspace](https://github.com/CJReinforce/PURE/tree/verl/verl/utils/logger/wandb_ws.py) to monitor important metrics. ✨✨
+- [2025/03/24] We re-implement our algorithm based on verl. See [verl branch](https://github.com/CJReinforce/PURE/tree/verl). ✨✨ Key features: (1) add ~50 additional metrics to comprehensively monitor the training process and stability, (2) add [a custom wandb workerspace](https://github.com/CJReinforce/PURE/tree/verl/verl/utils/logger/wandb_ws.py) to monitor ~20 important metrics, (3) add curriculum learning.✨✨
 - [2025/02/22] 🔥🔥We release the [notion blog](https://tungsten-ink-510.notion.site/Stop-Gamma-Decay-Min-Form-Credit-Assignment-Is-All-Process-Reward-Model-Needs-for-Reasoning-19fcb6ed0184804eb07fd310b38af155?pvs=4), which details our algorithm, the difference between gamma-decay and min-form credit assignment, examples of reward hacking, and so on🔥🔥
 - [2025/02/09] We release the training, evaluation code, [wandb logs](https://wandb.ai/cjreinforce/openrlhf_train_ppo/workspace?nw=nwuserchrisjina), and [checkpoints](https://huggingface.co/collections/jinachris/pure-67a85510dc24acd26bb8109f). Paper's on it's way!
 
@@ -40,7 +40,7 @@ To answer these questions, we present **PURE** (**P**rocess-s**U**pervised **R**
 
 ## 🔧 Quick Start
 
-We implement our algorithm on two frameworks, OpenRLHF and verl, respectively. The `main` branch is based on openrlhf and the `verl` branch is based on verl.
+We implement our algorithm on two frameworks, OpenRLHF and verl, in 2 different branches respectively. If you are new to our project, we recommend using verl version.
 
 ### Installation
 
@@ -57,7 +57,6 @@ Please refer to the [official installation guidance](https://verl.readthedocs.io
 We train the PRM in 2 stages using [TRL](https://github.com/huggingface/trl) and a [preprocessed PRM800K dataset](https://huggingface.co/datasets/HuggingFaceH4/prm800k-trl-dedup). In the first stage, we freeze the LLM and only train the last score layer (MLP) with 1e-4 learning rate rate for 3 epochs. In the second stage, we unfreeze the LLM and fine-tune all parameters with 1e-6 learning rate for 1 epoch. The resultant PRM is released through [HuggingFace](https://huggingface.co/jinachris/Qwen2.5-Math-7B-PRM800K).
 
 ```bash
-# on main branch
 cd PRM
 # stage 1
 bash train_stage_1.sh
@@ -69,7 +68,7 @@ bash train_stage_2.sh
 
 #### OpenRLHF version
 
-To start training, run the following command. It uses Ray+vLLM for rollout acceleration, with the first 4 GPUs allocated for the actor, initial actor (reference model), and PRM. The remaining GPUs are used for the vLLM engines. This setup works with 5 to 8 GPUs—just adjust the number of vLLM engines in the script accordingly.
+Switch to the [openrlhf branch](https://github.com/CJReinforce/PURE/tree/openrlhf). To start training, run the following command. It uses Ray+vLLM for rollout acceleration, with the first 4 GPUs allocated for the actor, initial actor (reference model), and PRM. The remaining GPUs are used for the vLLM engines. This setup works with 5 to 8 GPUs—just adjust the number of vLLM engines in the script accordingly.
 
 ```bash
 bash examples/scripts/train_pure.sh
@@ -107,7 +106,7 @@ Unfortunately, we did not observe the aha moment, self-reflection, or long CoT f
 
 ## 📝 TODO:
 
-- [x] re-implementation on [verl](https://github.com/volcengine/verl) (see `verl` [branch](https://github.com/CJReinforce/PURE/tree/verl))
+- [x] re-implementation on [verl](https://github.com/volcengine/verl)
 - [ ] paper with more discussions and evaluations
 - [ ] attempts to mitigate reward hacking for PRM (Online PURE)
 
