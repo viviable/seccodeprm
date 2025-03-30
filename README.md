@@ -10,7 +10,7 @@
 
 ## 🎉 News:
 
-- [2025/03/24] We re-implement our algorithm based on verl. See [verl branch](https://github.com/volcengine/verl). 
+- [2025/03/24] We re-implement our algorithm based on verl. See [verl branch](https://github.com/CJReinforce/PURE/tree/verl). ✨✨ Key features: 1. Add ~50 additional metrics to comprehensively monitor the training process and stability. 2. Add [a custom wandb workerspace](https://github.com/CJReinforce/PURE/tree/verl/verl/utils/logger/wandb_ws.py) to monitor important metrics. ✨✨
 - [2025/02/22] 🔥🔥We release the [notion blog](https://tungsten-ink-510.notion.site/Stop-Gamma-Decay-Min-Form-Credit-Assignment-Is-All-Process-Reward-Model-Needs-for-Reasoning-19fcb6ed0184804eb07fd310b38af155?pvs=4), which details our algorithm, the difference between gamma-decay and min-form credit assignment, examples of reward hacking, and so on🔥🔥
 - [2025/02/09] We release the training, evaluation code, [wandb logs](https://wandb.ai/cjreinforce/openrlhf_train_ppo/workspace?nw=nwuserchrisjina), and [checkpoints](https://huggingface.co/collections/jinachris/pure-67a85510dc24acd26bb8109f). Paper's on it's way!
 
@@ -77,7 +77,7 @@ bash examples/scripts/train_pure.sh
 
 #### verl version
 
-Switch to the [verl branch](https://github.com/volcengine/verl). Modify the `actor_rollout_ref.model.path`, `trainer.default_local_dir` in the [config file](verl/trainer/config/ppo_trainer.yaml). Then start training:
+Switch to the [verl branch](https://github.com/CJReinforce/PURE/tree/verl). Modify the `actor_rollout_ref.model.path`, `trainer.default_local_dir` in the [config file](verl/trainer/config/ppo_trainer.yaml). Then start training:
 
 ```bash
 python -m verl.trainer.main_ppo
