@@ -135,7 +135,7 @@ def apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, 
     kl_ctrl.update(current_kl=current_kl, n_steps=batch_size)
     data.batch['token_level_rewards'] = token_level_rewards
 
-    metrics = {'critic/kl': current_kl, 'critic/kl_coeff': beta}
+    metrics = {'instant_rewards/kl/mean': current_kl, 'critic/kl_coeff': beta}
 
     return data, metrics
 
@@ -242,20 +242,63 @@ def _compute_response_info(batch):
     )
 
 
+def compute_high_repeatness_ratio(batch):
+    repeat_mask = batch.batch.get('repeat_mask', None)
+    if repeat_mask is None:
+        return {}
+
+    correct_responses = batch.batch['verifiable_rewards'] == 1
+    correct_repeat_mask = repeat_mask[correct_responses]
+    incorrect_repeat_mask = repeat_mask[~correct_responses]
+    return {
+        'high_level_scores/high_repeatness_ratio/whole': torch.mean(repeat_mask).detach().item(),
+        'high_level_scores/high_repeatness_ratio/correct': torch.mean(correct_repeat_mask).detach().item(),
+        'high_level_scores/high_repeatness_ratio/incorrect': torch.mean(incorrect_repeat_mask).detach().item(),
+    }
+
+
 def _compute_pass_at_n(batch):
     index = batch.non_tensor_batch['uid']
     verifiable_reward = batch.batch['verifiable_rewards']
 
     bsz = len(index)
     id2vr = defaultdict(list)
-    pass_at_n = {}
+    pass_at_n, avg_n = {}, {}
 
     for i in range(bsz):
         id2vr[index[i]].append(verifiable_reward[i].item())
     
     for k, v in id2vr.items():
         pass_at_n[k] = np.any(v).astype(float)
-    return torch.tensor(list(pass_at_n.values()), dtype=torch.float32)
+        avg_n[k] = np.mean(v)
+    return dict(
+        pass_at_n=torch.tensor(list(pass_at_n.values()), dtype=torch.float32),
+        avg_n=torch.tensor(list(avg_n.values()), dtype=torch.float32),
+    )
+
+
+def compute_group_info_metrics(batch, message: str):
+    group_info = _compute_pass_at_n(batch)
+    pass_at_n = group_info['pass_at_n']
+    avg_n = group_info['avg_n']
+
+    metrics = {
+        # pass@n
+        f'group_info/pass_at_n/{message}/mean':
+            torch.mean(pass_at_n).detach().item(),
+        f'group_info/pass_at_n/{message}/max':
+            torch.max(pass_at_n).detach().item(),
+        f'group_info/pass_at_n/{message}/min':
+            torch.min(pass_at_n).detach().item(),
+        # avg_n
+        f'group_info/avg_n/{message}/mean':
+            torch.mean(avg_n).detach().item(),
+        f'group_info/avg_n/{message}/max':
+            torch.max(avg_n).detach().item(),
+        f'group_info/avg_n/{message}/min':
+            torch.min(avg_n).detach().item(),
+    }
+    return metrics
 
 
 def compute_data_metrics(batch, use_critic=True):
@@ -263,6 +306,7 @@ def compute_data_metrics(batch, use_critic=True):
     sequence_reward = batch.batch['token_level_rewards'].sum(-1)
     verifiable_rewards = batch.batch['verifiable_rewards']
     outcome_rewards = batch.batch['rm_scores'].sum(-1)
+    orm_match_vr = batch.batch.get('orm_match_vr', None)
 
     advantages = batch.batch['advantages']
     returns = batch.batch['returns']
@@ -283,7 +327,6 @@ def compute_data_metrics(batch, use_critic=True):
     valid_adv = torch.masked_select(advantages, response_mask)
     valid_returns = torch.masked_select(returns, response_mask)
 
-    pass_at_n = _compute_pass_at_n(batch)
     num_steps = batch.batch['num_steps']
     repeat_score = batch.batch['repeat_score']
     reflection_pattern_score = batch.batch['reflection_pattern_score']
@@ -295,69 +338,71 @@ def compute_data_metrics(batch, use_critic=True):
         return_var = torch.var(valid_returns)
 
     metrics = {
+        # instant rewards
         # verifiable reward
-        'critic/verifiable_reward/mean':
+        'instant_rewards/verifiable_reward/mean':
             torch.mean(verifiable_rewards).detach().item(),
-        'critic/verifiable_reward/max':
+        'instant_rewards/verifiable_reward/max':
             torch.max(verifiable_rewards).detach().item(),
-        'critic/verifiable_reward/min':
+        'instant_rewards/verifiable_reward/min':
             torch.min(verifiable_rewards).detach().item(),
-        # pass@n
-        'critic/pass_at_n/mean':
-            torch.mean(pass_at_n).detach().item(),
-        'critic/pass_at_n/max':
-            torch.max(pass_at_n).detach().item(),
-        'critic/pass_at_n/min':
-            torch.min(pass_at_n).detach().item(),
         # orm scores
-        'critic/outcome_reward/mean':
+        'instant_rewards/outcome_reward/mean':
             torch.mean(outcome_rewards).detach().item(),
-        'critic/outcome_reward/max':
+        'instant_rewards/outcome_reward/max':
             torch.max(outcome_rewards).detach().item(),
-        'critic/outcome_reward/min':
+        'instant_rewards/outcome_reward/min':
             torch.min(outcome_rewards).detach().item(),
+        # match
+        **({
+            'instant_rewards/orm_match_vr': torch.mean(orm_match_vr).detach().item(),
+        } if orm_match_vr is not None else {}),
+        
+        # high level scores
         # repeatness
-        'critic/repeat_score/mean':
+        'high_level_scores/repeat_score/mean':
             torch.mean(repeat_score).detach().item(),
-        'critic/repeat_score/max':
+        'high_level_scores/repeat_score/max':
             torch.max(repeat_score).detach().item(),
-        'critic/repeat_score/min':
+        'high_level_scores/repeat_score/min':
             torch.min(repeat_score).detach().item(),
         # reflection_pattern_score
-        'critic/reflection_pattern_score/mean':
+        'high_level_scores/reflection_pattern_score/mean':
             torch.mean(reflection_pattern_score).detach().item(),
-        'critic/reflection_pattern_score/max':
+        'high_level_scores/reflection_pattern_score/max':
             torch.max(reflection_pattern_score).detach().item(),
-        'critic/reflection_pattern_score/min':
+        'high_level_scores/reflection_pattern_score/min':
             torch.min(reflection_pattern_score).detach().item(),
-        # score
-        'critic/score/mean':
-            torch.mean(sequence_score).detach().item(),
-        'critic/score/max':
-            torch.max(sequence_score).detach().item(),
-        'critic/score/min':
-            torch.min(sequence_score).detach().item(),
-        # reward
+        
+        # long-term "gains"
+        # reward = score + kl_penalty
         'critic/rewards/mean':
             torch.mean(sequence_reward).detach().item(),
         'critic/rewards/max':
             torch.max(sequence_reward).detach().item(),
         'critic/rewards/min':
             torch.min(sequence_reward).detach().item(),
-        # adv
-        'critic/advantages/mean':
-            torch.mean(valid_adv).detach().item(),
-        'critic/advantages/max':
-            torch.max(valid_adv).detach().item(),
-        'critic/advantages/min':
-            torch.min(valid_adv).detach().item(),
-        # returns
+        # returns = gamma-decayed cumulative reward
         'critic/returns/mean':
             torch.mean(valid_returns).detach().item(),
         'critic/returns/max':
             torch.max(valid_returns).detach().item(),
         'critic/returns/min':
             torch.min(valid_returns).detach().item(),
+        # score = reward_fn + reward_model
+        'critic/score/mean':
+            torch.mean(sequence_score).detach().item(),
+        'critic/score/max':
+            torch.max(sequence_score).detach().item(),
+        'critic/score/min':
+            torch.min(sequence_score).detach().item(),
+        # adv = normalized(return - baseline)
+        'critic/advantages/mean':
+            torch.mean(valid_adv).detach().item(),
+        'critic/advantages/max':
+            torch.max(valid_adv).detach().item(),
+        'critic/advantages/min':
+            torch.min(valid_adv).detach().item(),
         **({
             # values
             'critic/values/mean': torch.mean(valid_values).detach().item(),
@@ -368,30 +413,34 @@ def compute_data_metrics(batch, use_critic=True):
         } if use_critic else {}),
 
         # response length
-        'response_length/mean':
+        # mean
+        'response_length/whole/mean':
             torch.mean(response_length).detach().item(),
-        'response_length/max':
-            torch.max(response_length).detach().item(),
-        'response_length/min':
-            torch.min(response_length).detach().item(),
-        'response_length/clip_ratio':
-            torch.mean(torch.eq(response_length, max_response_length).float()).detach().item(),
-        'response_length/correct_mean':
+        'response_length/correct/mean':
             torch.mean(correct_response_length).detach().item(),
-        'response_length/correct_max':
-            torch.max(correct_response_length).detach().item(),
-        'response_length/correct_min':
-            torch.min(correct_response_length).detach().item(),
-        'response_length/correct_clip_ratio':
-            torch.mean(torch.eq(correct_response_length, max_response_length).float()).detach().item(),
-        'response_length/incorrect_mean':
+        'response_length/incorrect/mean':
             torch.mean(incorrect_response_length).detach().item(),
-        'response_length/incorrect_max':
+        # max
+        'response_length/whole/max':
+            torch.max(response_length).detach().item(),
+        'response_length/correct/max':
+            torch.max(correct_response_length).detach().item(),
+        'response_length/incorrect/max':
             torch.max(incorrect_response_length).detach().item(),
-        'response_length/incorrect_min':
-            torch.min(incorrect_response_length).detach().item(),
-        'response_length/incorrect_clip_ratio':
+        # clip_ratio
+        'response_length/whole/clip_ratio':
+            torch.mean(torch.eq(response_length, max_response_length).float()).detach().item(),
+        'response_length/correct/clip_ratio':
+            torch.mean(torch.eq(correct_response_length, max_response_length).float()).detach().item(),
+        'response_length/incorrect/clip_ratio':
             torch.mean(torch.eq(incorrect_response_length, max_response_length).float()).detach().item(),
+        # min
+        'response_length/whole/min':
+            torch.min(response_length).detach().item(),
+        'response_length/correct/min':
+            torch.min(correct_response_length).detach().item(),
+        'response_length/incorrect/min':
+            torch.min(incorrect_response_length).detach().item(),
         
         # num of steps
         'num_of_steps/mean':
@@ -1019,12 +1068,97 @@ class RayPPOTrainer(object):
                     # generate a batch
                     with _timer('rollout', timing_raw):
                         gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
+                    
+                    # unique uid for each prompt
+                    batch.non_tensor_batch['uid'] = np.array(
+                        [str(uuid.uuid4()) for _ in range(len(batch.batch))],
+                        dtype=object,
+                    )
+                    # repeat to align with repeated responses in rollout
+                    batch = batch.repeat(repeat_times=self.config.actor_rollout_ref.rollout.n, interleave=True)
+                    batch = batch.union(gen_batch_output)
+
+                    # TODO: not good to forward rm before curriculum learning
+                    # compute reward model's score
+                    if self.use_rm:
+                        with _timer('compute_rm_score', timing_raw):
+                            # return rm_scores
+                            reward_tensor = self.rm_wg.compute_rm_score(batch)
+                            batch = batch.union(reward_tensor)
+
+                    # repeatness & reflection pattern score
+                    with _timer('compute_additional_metrics', timing_raw):
+                        additional_metrics = get_repeatness_and_reflection_score(
+                            data=batch, 
+                            tokenizer=self.tokenizer,
+                        )
+                        batch = batch.union(additional_metrics)
+                    
+                    # rule-based score
+                    with _timer('call_reward_fn', timing_raw):
+                        # return 1. verifiable_rewards (outcome score) and
+                        # 2. reward_fn_scores (token-level score) 
+                        batch.meta_info['repeatness_punishment'] = self.config.reward_model.get(
+                            'repeatness_punishment', False,
+                        )
+                        # TODO: Decomposing the reward function: match GT, format checker, repeatness punishment...
+                        rewards = self.reward_fn(batch)
+                        batch = batch.union(rewards)
+                        batch.meta_info.pop('repeatness_punishment')
+                    
+                    # compute pass@n, avg@n before curriculum learning
+                    metrics.update(compute_group_info_metrics(batch, message='whole_batch'))
+                    
+                    # curriculum learning
+                    if self.config.curriculum_learning.get('enable', False):
+                        with _timer('curriculum_learning', timing_raw):
+                            outcome_level_vr = batch.batch['verifiable_rewards']
+                            index = batch.non_tensor_batch['uid']
+                            bsz = len(index)
+                            
+                            # gather rewards in the same group
+                            id2vr = defaultdict(list)  # {uid (prompt): [r_1, ..., r_n] (group vr)} 
+                            for i in range(bsz):
+                                id2vr[index[i]].append(outcome_level_vr[i].item())
+                            
+                            # compute mean group reward
+                            mean_group_reward = {}  # {uid (prompt): mean_r}
+                            for uid, group_r in id2vr.items():
+                                mean_group_reward[uid] = np.mean(group_r)
+                            
+                            # bound for filtering prompts
+                            group_rewards = np.array(list(mean_group_reward.values()))
+                            lower_bound = np.percentile(group_rewards, 25)
+                            upper_bound = np.percentile(group_rewards, 75)
+
+                            # retained prompts
+                            retained_uids = [uid for uid, mean_r in mean_group_reward.items() if lower_bound <= mean_r < upper_bound]
+                            retained_ids = []
+                            for idx in range(len(batch)):
+                                uid = index[idx]
+                                if uid in retained_uids:
+                                    retained_ids.append(idx)
+                            
+                            origin_bsz = len(batch)
+                            batch = batch.get_dataproto_item(retained_ids)
+                            after_bsz = len(batch)
+
+                            metrics.update({
+                                'curriculum_learning/original_batch_size': origin_bsz,
+                                'curriculum_learning/filtered_batch_size': after_bsz,
+                                'curriculum_learning/retain_ratio': after_bsz / origin_bsz,
+                            })
+                            metrics.update(compute_group_info_metrics(batch, message='retained_batch'))
+                    
+                    # monitor high repeatness for training samples
+                    metrics.update(compute_high_repeatness_ratio(batch))
 
                     if self.config.algorithm.adv_estimator == AdvantageEstimator.REMAX:
                         assert self.config.reward_model.enable, "Not support remax with reward model yet."
                         with _timer('greedy_rollout', timing_raw):
-                            gen_baseline_batch = deepcopy(gen_batch)
+                            gen_baseline_batch = deepcopy(batch.pop(batch_keys=['input_ids', 'attention_mask', 'position_ids']))
                             gen_baseline_batch.meta_info['do_sample'] = False
+                            gen_baseline_batch.meta_info['n'] = 1
                             gen_baseline_output = self.actor_rollout_wg.generate_sequences(gen_baseline_batch)
 
                             batch = batch.union(gen_baseline_output)
@@ -1035,12 +1169,6 @@ class RayPPOTrainer(object):
                             batch.batch['reward_baselines'] = reward_baseline_tensor
 
                             del gen_baseline_batch, gen_baseline_output
-
-                    batch.non_tensor_batch['uid'] = np.array([str(uuid.uuid4()) for _ in range(len(batch.batch))],
-                                                             dtype=object)
-                    # repeat to align with repeated responses in rollout
-                    batch = batch.repeat(repeat_times=self.config.actor_rollout_ref.rollout.n, interleave=True)
-                    batch = batch.union(gen_batch_output)
 
                     # balance the number of valid tokens on each dp rank.
                     # Note that this breaks the order of data inside the batch.
@@ -1067,32 +1195,16 @@ class RayPPOTrainer(object):
                             values = self.critic_wg.compute_values(batch)
                             batch = batch.union(values)
 
-                    # compute scores. Support both model and function-based.
-                    # We first compute the scores using reward model. Then, we call reward_fn to combine
-                    # the results from reward model and rule-based results.
-                    if self.use_rm:
-                        with _timer('compute_rm_score', timing_raw):
-                            # return rm_scores
-                            reward_tensor = self.rm_wg.compute_rm_score(batch)
-                            batch = batch.union(reward_tensor)
-
-                    # we combine with rule-based rm
-                    with _timer('call_reward_fn', timing_raw):
-                        # return 1. verifiable_rewards (outcome score) and
-                        # 2. reward_fn_scores (token-level score) 
-                        reward_tensor = self.reward_fn(batch)
-                        batch = batch.union(reward_tensor)
-
                     with _timer('compute_advantage', timing_raw):
                         # 1. compute token-level scores from rm_scores and reward_fn_scores
-                        verifiable_rewards = batch.batch['reward_fn_scores']
+                        token_level_vr = batch.batch['reward_fn_scores']
 
                         if 'rm_scores' in batch.batch.keys():
                             vr_coef = self.config.reward_model.get('verifiable_reward_coef', 1.0)
                             rm_scores = batch.batch['rm_scores']
-                            token_level_scores = verifiable_rewards * vr_coef + rm_scores
+                            token_level_scores = token_level_vr * vr_coef + rm_scores
                         else:
-                            token_level_scores = verifiable_rewards
+                            token_level_scores = token_level_vr
                         batch.batch['token_level_scores'] = token_level_scores
 
                         # 2. compute kl penalty for token-level rewards
@@ -1131,14 +1243,6 @@ class RayPPOTrainer(object):
                             actor_output = self.actor_rollout_wg.update_actor(batch)
                         actor_output_metrics = reduce_metrics(actor_output.meta_info['metrics'])
                         metrics.update(actor_output_metrics)
-                    
-                    # repeatness & reflection pattern score
-                    with _timer('compute_additional_metrics', timing_raw):
-                        additional_metrics = get_repeatness_and_reflection_score(
-                            data=batch, 
-                            tokenizer=self.tokenizer,
-                        )
-                        batch = batch.union(additional_metrics)
 
                     # validate
                     if self.val_reward_fn is not None and self.config.trainer.test_freq > 0 and \
@@ -1162,7 +1266,6 @@ class RayPPOTrainer(object):
                 self.global_steps += 1
 
                 if self.global_steps >= self.total_training_steps:
-
                     # perform validation after training
                     if self.val_reward_fn is not None:
                         val_metrics = self._validate()

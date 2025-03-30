@@ -20,6 +20,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import copy
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Union
 
@@ -199,6 +200,20 @@ class DataProto:
         non_tensor_data = {key: val[item] for key, val in self.non_tensor_batch.items()}
         return DataProtoItem(batch=tensor_data, non_tensor_batch=non_tensor_data, meta_info=self.meta_info)
 
+    def get_dataproto_item(self, idx):
+        if isinstance(idx, Iterable):
+            if len(idx) == 0:
+                print('Warning: Input zero length indices!')
+                idx = [np.random.randint(len(self))]
+            tensor_list = [self.batch[i].unsqueeze(0) for i in idx]
+            tensor_data = torch.cat(tensor_list, dim=0)
+            non_tensor_data = {key: [val[i] for i in idx] for key, val in self.non_tensor_batch.items()}
+            return DataProto.from_dict(tensors=tensor_data.to_dict(), non_tensors=non_tensor_data, meta_info=self.meta_info)
+        else:
+            tensor_data = self.batch[idx].unsqueeze(0)
+            non_tensor_data = {key: [val[idx]] for key, val in self.non_tensor_batch.items()}
+            return DataProto.from_dict(tensors=tensor_data.to_dict(), non_tensors=non_tensor_data, meta_info=self.meta_info)
+    
     def __getstate__(self):
         import io
         buffer = io.BytesIO()

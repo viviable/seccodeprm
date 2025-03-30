@@ -94,10 +94,10 @@ async def single_get_repeatness_and_reflection_score(response, executor):
         return (num_steps, repeat, reflection)
     except asyncio.TimeoutError:
         print(f"Timeout occurred for completion: {response}")
-        return (num_steps, None, None)
+        return (num_steps, 0.0, 0)
     except Exception as e:
         print(f"Error processing completion: {response[:10]}, Error: {e}")
-        return (num_steps, None, None)
+        return (num_steps, 0.0, 0)
 
 
 async def parallel_get_repeatness_and_reflection_score_async(responses, num_processes=64):
@@ -125,9 +125,11 @@ def get_repeatness_and_reflection_score(data: DataProto, tokenizer):
             num_processes=64,
         )
     )
+    repeat_score = torch.tensor(repeat_score, dtype=torch.float32)
     output = DataProto.from_dict(dict(
         num_steps=torch.tensor(num_steps, dtype=torch.float32),
-        repeat_score=torch.tensor(repeat_score, dtype=torch.float32),
+        repeat_score=repeat_score,
+        repeat_mask=(repeat_score > 0.2).to(dtype=torch.float32),
         reflection_pattern_score=torch.tensor(reflection_score, dtype=torch.float32),
     ))
     return output

@@ -135,6 +135,14 @@ class PrimeRewardManager:
             scores = [0. for _ in range(len(sequences_str))]
         
         scores = torch.tensor(scores, dtype=torch.float32, device=prompt_ids.device)
+
+        # repeat punishment: if repeatness > 0.2, get 0 VR
+        repeat_mask = data.batch.get('repeat_mask', None)
+        if data.meta_info.get('repeatness_punishment', False) and repeat_mask is not None:
+            repeat_mask = repeat_mask.to(device=scores.device, dtype=torch.bool)
+            scores[repeat_mask] = 0
+        
+        # check whether outcome-level reward from RM matches GT-level VR
         rm_scores = data.batch.get('rm_scores', None)
         orm_match_vr = None
         if rm_scores is not None:
@@ -146,8 +154,9 @@ class PrimeRewardManager:
             predictions[predictions == -1] = 0
             orm_match_vr = predictions == scores
         
-        output_str = f"{'Rollout Example':#^{50}}\n"
+        example_idx = 1
         for i in range(len(data)):
+            output_str = f"{'Rollout Example ' + str(example_idx):#^{50}}\n"
             data_source = data_sources[i]
             reward_tensor[i, valid_response_length[i].item() - 1] = scores[i]
 
@@ -163,14 +172,19 @@ class PrimeRewardManager:
                 output_str += f"Num of steps: {len(steps)}\n"
                 output_str += f"Ground-truth: {ground_truth[i]}\n"
                 output_str += f"Verifiable reward: {scores[i].item()}\n"
+                if repeat_mask is not None:
+                    output_str += f"Repeatness: {repeat_mask[i].item()}\n"
                 if orm_match_vr is not None:
                     output_str += f"Outcome reward: {outcome_reward[i].item()}\n"
                     output_str += f"ORM match VR? {orm_match_vr[i].item()}\n"
                 print(output_str.rstrip())
+                example_idx += 1
         
-        output = DataProto.from_dict({
+        output = {
             "verifiable_rewards": scores,
             "reward_fn_scores": reward_tensor,
-            })
-
+        }
+        if orm_match_vr is not None:
+            output["orm_match_vr"] = orm_match_vr.to(dtype=torch.float32)
+        output = DataProto.from_dict(output)
         return output

@@ -213,6 +213,7 @@ def log_seqlen_unbalance(seqlen_list: List[int], partitions: List[List[int]], pr
         f'{prefix}/minmax_diff': max_sum_seqlen - min_sum_seqlen,
         f'{prefix}/balanced_min': min_sum_seqlen_balanced,
         f'{prefix}/balanced_max': max_sum_seqlen_balanced,
+        f'{prefix}/balanced_minmax_diff': max_sum_seqlen_balanced - min_sum_seqlen_balanced,
         f'{prefix}/mean': total_sum_seqlen / len(partitions)
     }
 
