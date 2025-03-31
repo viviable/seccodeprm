@@ -68,15 +68,23 @@ bash train_stage_2.sh
 
 #### 1. OpenRLHF version
 
-Switch to the [openrlhf branch](https://github.com/CJReinforce/PURE/tree/openrlhf). Run the following command. It uses Ray+vLLM for rollout acceleration, with the first 4 GPUs allocated for the actor, initial actor (reference model), and PRM. The remaining GPUs are used for the vLLM engines. This setup works with 5 to 8 GPUs—just adjust the number of vLLM engines in the script accordingly.
+Switch to the [openrlhf branch](https://github.com/CJReinforce/PURE/tree/openrlhf). Run the following command. The parameter `reward_mode` in the [script](https://github.com/CJReinforce/PURE/blob/openrlhf/examples/scripts/train_pure.sh) controls the reward type and can be set to `PRM`, `VR`, and `PRMVR`.
 
 ```bash
 bash examples/scripts/train_pure.sh
 ```
 
+It uses Ray+vLLM for rollout acceleration, with the first 4 GPUs allocated for the actor, initial actor (reference model), and PRM. The remaining GPUs are used for the vLLM engines. This setup works with 5 to 8 GPUs—just adjust the number of vLLM engines in the script accordingly.
+
 #### 2. verl version
 
-Switch to the [verl branch](https://github.com/CJReinforce/PURE/tree/verl). Modify the `actor_rollout_ref.model.path`, `trainer.default_local_dir` in the [config file](verl/trainer/config/ppo_trainer.yaml). Then start training:
+Switch to the [verl branch](https://github.com/CJReinforce/PURE/tree/verl). Set the reward type in the [config file](verl/trainer/config/ppo_trainer.yaml):
+
+1. `PURE-VR` uses `reward_model.enable=False reward_model.reward_manager=prime`
+2. `PURE-PRM` uses `reward_model.enable=True reward_model.reward_manager=blank`
+3. `PURE-PRM+VR` uses `reward_model.enable=True reward_model.reward_manager=prime`.
+
+Then start training:
 
 ```bash
 python -m verl.trainer.main_ppo
@@ -84,7 +92,7 @@ python -m verl.trainer.main_ppo
 
 The hybrid engine of verl allows for higher gpu utilization compared to the openrlhf version.
 
-### Evaluation of Math Reasoning
+### Evaluation
 
 We use [Qwen Math's codebase](https://github.com/QwenLM/Qwen2.5-Math/tree/main/evaluation) for evaluation (i.e., pass@1 accuracy). For fairness considerations, we completely prohibited solving problems by calling code, following SimpleRL. Please follow the `/eval` instructions for evaluation.
 
