@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("--data_names", default="gsm8k,math", type=str)
     parser.add_argument("--data_dir", default="./data", type=str)
     parser.add_argument("--model_name_or_path", default="gpt-4", type=str)
+    parser.add_argument("--tokenizer_path", default=None, type=str)
     parser.add_argument("--output_dir", default="./output", type=str)
     parser.add_argument("--prompt_type", default="tool-integrated", type=str)
     parser.add_argument("--split", default="test", type=str)
@@ -54,6 +55,7 @@ def parse_args():
     args.top_p = (
         1 if args.temperature == 0 else args.top_p
     )  # top_p must be 1 when using greedy sampling (vllm)
+    args.tokenizer_path = args.model_name_or_path if args.tokenizer_path is None else args.tokenizer_path
     return args
 
 
@@ -128,6 +130,7 @@ def setup(args):
     if args.use_vllm:
         llm = LLM(
             model=args.model_name_or_path,
+            tokenizer=args.tokenizer_path,
             tensor_parallel_size=len(available_gpus) // args.pipeline_parallel_size,
             pipeline_parallel_size=args.pipeline_parallel_size,
             trust_remote_code=True,

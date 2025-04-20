@@ -38,7 +38,9 @@ def run_ppo(config, compute_score=None):
                     "NCCL_NET_OVERHEAD": "1000000",
                     "CUDA_LAUNCH_BLOCKING": "1",
                 }
-            }
+            },
+            # debug mode
+            local_mode=config.trainer.get('debug', False),
         )
 
     ray.get(main_task.remote(config, compute_score))
@@ -57,6 +59,12 @@ def main_task(config, compute_score=None):
     OmegaConf.set_struct(config, True)
     with open_dict(config):
         config.data.chat_template = '{}\n\nPlease reason step by step with steps separated by "\n\n", and put your final answer within \\boxed{{}}.'
+        # debug mode
+        if config.trainer.get('debug', False):
+            config.trainer.logger = ['console']
+            exp_name = config.trainer.experiment_name
+            config.trainer.experiment_name = exp_name if exp_name.lower().startswith('debug_') else 'debug_' + exp_name
+            config.trainer.val_before_train = False
     pprint(OmegaConf.to_container(config, resolve=True))  # resolve=True will eval symbol values
     OmegaConf.resolve(config)
 
@@ -140,13 +148,28 @@ def main_task(config, compute_score=None):
         reward_manager_cls = BlankRewardManager
     else:
         raise NotImplementedError
-    reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=0, compute_score=compute_score)
+    reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=2, compute_score=compute_score)
 
     # Note that we always use function-based RM for validation
     if reward_manager_name == 'blank':
-        val_reward_fn = PrimeRewardManager(tokenizer=tokenizer, num_examine=1, compute_score=compute_score)
+        val_reward_fn = PrimeRewardManager(tokenizer=tokenizer, num_examine=2, compute_score=compute_score)
     else:
-        val_reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=1, compute_score=compute_score)
+        val_reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=2, compute_score=compute_score)
+    
+    curriculum_learning_fn = None
+    if config.curriculum_learning.get('enable', False):
+        method = config.curriculum_learning.get('fn_name', 'remove_extreme')
+        fn_params = config.curriculum_learning.get('fn_params', None)
+        fn_params = dict(fn_params) if fn_params is not None else {}
+
+        if method == 'interquartile':
+            from verl.workers.curriculum_learning import InterquartileCurriculumLearning
+            curriculum_learning_fn = InterquartileCurriculumLearning(**fn_params)
+        elif method == 'remove_extreme':
+            from verl.workers.curriculum_learning import RemoveExtremeRewardCurriculumLearning
+            curriculum_learning_fn = RemoveExtremeRewardCurriculumLearning()
+        else:
+            raise NotImplementedError
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
     
@@ -157,7 +180,7 @@ def main_task(config, compute_score=None):
                             ray_worker_group_cls=ray_worker_group_cls,
                             reward_fn=reward_fn,
                             val_reward_fn=val_reward_fn,
-                        )
+                            curriculum_learning_fn=curriculum_learning_fn,)
     trainer.init_workers()
     trainer.fit()
 

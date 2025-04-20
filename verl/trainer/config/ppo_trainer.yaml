@@ -22,7 +22,7 @@ actor_rollout_ref:
     use_remove_padding: True
   actor:
     strategy: fsdp  # This is for backward-compatibility
-    ppo_mini_batch_size: 256
+    ppo_mini_batch_size: 64  # per GPU
     ppo_micro_batch_size: null # will be deprecated, use ppo_micro_batch_size_per_gpu
     ppo_micro_batch_size_per_gpu: 1
     use_dynamic_bsz: True
@@ -67,8 +67,8 @@ actor_rollout_ref:
     dtype: bfloat16 # should align with FSDP
     gpu_memory_utilization: 0.7
     ignore_eos: False
-    enforce_eager: True
-    free_cache_engine: True
+    enforce_eager: False
+    free_cache_engine: False
     load_format: dummy_dtensor
     tensor_model_parallel_size: 1
     max_num_batched_tokens: null
@@ -147,6 +147,16 @@ reward_model:
   forward_max_token_len_per_gpu: 24000
   reward_manager: prime
   verifiable_reward_coef: 1.0
+  modeling_reward_coef: 0.5
+  repeatness_punishment: False
+  high_repeat_threshold: 0.2
+
+curriculum_learning:
+  enable: True
+  fn_name: remove_extreme
+  fn_params:
+    lower_percentile_bound: 25
+    upper_percentile_bound: 75
 
 algorithm:
   gamma: 1.0
@@ -159,10 +169,11 @@ algorithm:
     kl_coef: 0.001
 
 trainer:
+  debug_mode: False
   total_epochs: 20
   total_training_steps: null
   project_name: pure_verl
-  experiment_name: Qwen2p5-7B_prompts-${data.train_batch_size}_n-${actor_rollout_ref.rollout.n}_ppo-bs-${actor_rollout_ref.actor.ppo_mini_batch_size}
+  experiment_name: Qwen2p5-7B_prompts-${data.train_batch_size}_n-${actor_rollout_ref.rollout.n}
   logger: ['console', 'wandb']
   val_generations_to_log_to_wandb: 0
   nnodes: 1

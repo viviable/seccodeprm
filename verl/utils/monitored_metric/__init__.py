@@ -115,7 +115,7 @@ async def parallel_get_repeatness_and_reflection_score_async(responses, num_proc
     return num_steps, repeatness_list, reflection_scores
 
 
-def get_repeatness_and_reflection_score(data: DataProto, tokenizer):
+def get_repeatness_and_reflection_score(data: DataProto, tokenizer, high_repeat_threshold=0.05):
     response_tokens = data.batch['responses']
     responses = tokenizer.batch_decode(response_tokens, skip_special_tokens=True)
 
@@ -129,7 +129,7 @@ def get_repeatness_and_reflection_score(data: DataProto, tokenizer):
     output = DataProto.from_dict(dict(
         num_steps=torch.tensor(num_steps, dtype=torch.float32),
         repeat_score=repeat_score,
-        repeat_mask=(repeat_score > 0.2).to(dtype=torch.float32),
+        repeat_mask=(repeat_score > high_repeat_threshold).to(dtype=torch.float32),
         reflection_pattern_score=torch.tensor(reflection_score, dtype=torch.float32),
     ))
     return output

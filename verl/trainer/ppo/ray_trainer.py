@@ -144,17 +144,17 @@ def compute_advantage(data: DataProto, adv_estimator, gamma=1.0, lam=1.0, num_re
     # prepare response group
     # TODO: add other ways to estimate advantages
     if adv_estimator == AdvantageEstimator.GAE:
+        assert return_aggregate_method == 'sum', f'GAE only supports `sum` as the return aggregate method, got `{return_aggregate_method}`.'
         values = data.batch['values']
         responses = data.batch['responses']
         response_length = responses.size(-1)
         attention_mask = data.batch['attention_mask']
         response_mask = attention_mask[:, -response_length:]
         token_level_rewards = data.batch['token_level_rewards']
-        advantages, returns = core_algos.compute_gae_advantage_return(token_level_rewards=token_level_rewards,
-                                                                      values=values,
-                                                                      eos_mask=response_mask,
-                                                                      gamma=gamma,
-                                                                      lam=lam)
+        advantages, returns = core_algos.compute_gae_advantage_return(
+            token_level_rewards=token_level_rewards, values=values, 
+            eos_mask=response_mask, gamma=gamma, lam=lam, adv_norm=adv_norm, 
+        )
         data.batch['advantages'] = advantages
         data.batch['returns'] = returns
     elif adv_estimator == AdvantageEstimator.GRPO:
@@ -164,9 +164,11 @@ def compute_advantage(data: DataProto, adv_estimator, gamma=1.0, lam=1.0, num_re
         response_length = responses.size(-1)
         attention_mask = data.batch['attention_mask']
         response_mask = attention_mask[:, -response_length:]
-        advantages, returns = core_algos.compute_grpo_outcome_advantage(token_level_rewards=token_level_rewards,
-                                                                        eos_mask=response_mask,
-                                                                        index=index)
+        advantages, returns = core_algos.compute_grpo_outcome_advantage(
+            token_level_rewards=token_level_rewards, eos_mask=response_mask,
+            index=index, adv_norm=adv_norm,
+            return_aggregate_method=return_aggregate_method,
+        )
         data.batch['advantages'] = advantages
         data.batch['returns'] = returns
     elif adv_estimator == AdvantageEstimator.REINFORCE_PLUS_PLUS:
@@ -176,7 +178,9 @@ def compute_advantage(data: DataProto, adv_estimator, gamma=1.0, lam=1.0, num_re
         attention_mask = data.batch['attention_mask']
         response_mask = attention_mask[:, -response_length:]
         advantages, returns = core_algos.compute_reinforce_plus_plus_outcome_advantage(
-            token_level_rewards=token_level_rewards, eos_mask=response_mask, gamma=gamma)
+            token_level_rewards=token_level_rewards, eos_mask=response_mask, gamma=gamma,
+            adv_norm=adv_norm, return_aggregate_method=return_aggregate_method,
+        )
         data.batch['advantages'] = advantages
         data.batch['returns'] = returns
     elif adv_estimator == AdvantageEstimator.REMAX:
@@ -202,11 +206,11 @@ def compute_advantage(data: DataProto, adv_estimator, gamma=1.0, lam=1.0, num_re
         response_length = responses.size(-1)
         attention_mask = data.batch['attention_mask']
         response_mask = attention_mask[:, -response_length:]
-        advantages, returns = core_algos.compute_rloo_outcome_advantage(token_level_rewards=token_level_rewards,
-                                                                        eos_mask=response_mask,
-                                                                        index=index,
-                                                                        adv_norm=adv_norm,
-                                                                        return_aggregate_method=return_aggregate_method)
+        advantages, returns = core_algos.compute_rloo_outcome_advantage(
+            token_level_rewards=token_level_rewards, eos_mask=response_mask,
+            index=index, adv_norm=adv_norm, 
+            return_aggregate_method=return_aggregate_method,
+        )
         data.batch['advantages'] = advantages
         data.batch['returns'] = returns
     else:
@@ -220,6 +224,13 @@ def reduce_metrics(metrics: dict):
     return metrics
 
 
+def handle_empty_tensor(x):
+    if x.numel() == 0:
+        return torch.tensor([0.0])
+    else:
+        return x
+
+
 def _compute_response_info(batch):
     response_length = batch.batch['responses'].shape[-1]
 
@@ -230,8 +241,8 @@ def _compute_response_info(batch):
     response_length = response_mask.sum(-1).float()  # (batch_size,)
 
     correct_responses = batch.batch['verifiable_rewards'] == 1  # (batch_size,)
-    correct_response_length = response_length[correct_responses]
-    incorrect_response_length = response_length[~correct_responses]
+    correct_response_length = handle_empty_tensor(response_length[correct_responses])
+    incorrect_response_length = handle_empty_tensor(response_length[~correct_responses])
 
     return dict(
         response_mask=response_mask,
@@ -248,8 +259,8 @@ def compute_high_repeatness_ratio(batch):
         return {}
 
     correct_responses = batch.batch['verifiable_rewards'] == 1
-    correct_repeat_mask = repeat_mask[correct_responses]
-    incorrect_repeat_mask = repeat_mask[~correct_responses]
+    correct_repeat_mask = handle_empty_tensor(repeat_mask[correct_responses])
+    incorrect_repeat_mask = handle_empty_tensor(repeat_mask[~correct_responses])
     return {
         'high_level_scores/high_repeatness_ratio/whole': torch.mean(repeat_mask).detach().item(),
         'high_level_scores/high_repeatness_ratio/correct': torch.mean(correct_repeat_mask).detach().item(),
@@ -304,8 +315,14 @@ def compute_group_info_metrics(batch, message: str):
 def compute_data_metrics(batch, use_critic=True):
     sequence_score = batch.batch['token_level_scores'].sum(-1)
     sequence_reward = batch.batch['token_level_rewards'].sum(-1)
-    verifiable_rewards = batch.batch['verifiable_rewards']
-    outcome_rewards = batch.batch['rm_scores'].sum(-1)
+    # get each reward-part
+    default_rewards = torch.zeros_like(sequence_reward)
+    verifiable_rewards = batch.batch.get('verifiable_rewards', default_rewards)
+    outcome_rewards = batch.batch.get('rm_scores', None)
+    if outcome_rewards is None:
+        outcome_rewards = default_rewards
+    else:
+        outcome_rewards = outcome_rewards.sum(-1)
     orm_match_vr = batch.batch.get('orm_match_vr', None)
 
     advantages = batch.batch['advantages']
@@ -521,7 +538,8 @@ class RayPPOTrainer(object):
                  resource_pool_manager: ResourcePoolManager,
                  ray_worker_group_cls: RayWorkerGroup = RayWorkerGroup,
                  reward_fn=None,
-                 val_reward_fn=None):
+                 val_reward_fn=None,
+                 curriculum_learning_fn=None):
 
         # assert torch.cuda.is_available(), 'cuda must be available on driver'
 
@@ -529,6 +547,7 @@ class RayPPOTrainer(object):
         self.config = config
         self.reward_fn = reward_fn
         self.val_reward_fn = val_reward_fn
+        self.curriculum_learning_fn = curriculum_learning_fn
 
         self.hybrid_engine = config.actor_rollout_ref.hybrid_engine
         assert self.hybrid_engine, 'Currently, only support hybrid engine'
@@ -566,6 +585,7 @@ class RayPPOTrainer(object):
         else:
             raise NotImplementedError
         
+        # parser credit assignment method
         credit_assignment = self.config.reward_model.credit_assignment
         assert isinstance(credit_assignment, float) or \
             credit_assignment in ['gamma-decay', 'strict min-form']
@@ -573,9 +593,9 @@ class RayPPOTrainer(object):
             self.return_aggregate_method = 'min'
         else:
             self.return_aggregate_method = 'sum'
-        assert self.config.algorithm.adv_estimator in [
-            AdvantageEstimator.RLOO, AdvantageEstimator.GAE
-        ], "Not supported yet"
+        
+        assert not self.config.curriculum_learning.get('enable', False) or \
+            self.curriculum_learning_fn is not None
 
         self._validate_config()
         self._create_dataloader()
@@ -1091,6 +1111,7 @@ class RayPPOTrainer(object):
                         additional_metrics = get_repeatness_and_reflection_score(
                             data=batch, 
                             tokenizer=self.tokenizer,
+                            high_repeat_threshold=self.config.reward_model.get('high_repeat_threshold', 0.2),
                         )
                         batch = batch.union(additional_metrics)
                     
@@ -1110,37 +1131,11 @@ class RayPPOTrainer(object):
                     metrics.update(compute_group_info_metrics(batch, message='whole_batch'))
                     
                     # curriculum learning
-                    if self.config.curriculum_learning.get('enable', False):
+                    if self.config.curriculum_learning.get('enable', False) and \
+                        self.config.reward_model.reward_manager != 'blank':
                         with _timer('curriculum_learning', timing_raw):
-                            outcome_level_vr = batch.batch['verifiable_rewards']
-                            index = batch.non_tensor_batch['uid']
-                            bsz = len(index)
-                            
-                            # gather rewards in the same group
-                            id2vr = defaultdict(list)  # {uid (prompt): [r_1, ..., r_n] (group vr)} 
-                            for i in range(bsz):
-                                id2vr[index[i]].append(outcome_level_vr[i].item())
-                            
-                            # compute mean group reward
-                            mean_group_reward = {}  # {uid (prompt): mean_r}
-                            for uid, group_r in id2vr.items():
-                                mean_group_reward[uid] = np.mean(group_r)
-                            
-                            # bound for filtering prompts
-                            group_rewards = np.array(list(mean_group_reward.values()))
-                            lower_bound = np.percentile(group_rewards, 25)
-                            upper_bound = np.percentile(group_rewards, 75)
-
-                            # retained prompts
-                            retained_uids = [uid for uid, mean_r in mean_group_reward.items() if lower_bound <= mean_r < upper_bound]
-                            retained_ids = []
-                            for idx in range(len(batch)):
-                                uid = index[idx]
-                                if uid in retained_uids:
-                                    retained_ids.append(idx)
-                            
                             origin_bsz = len(batch)
-                            batch = batch.get_dataproto_item(retained_ids)
+                            batch = self.curriculum_learning_fn(batch)
                             after_bsz = len(batch)
 
                             metrics.update({
@@ -1201,8 +1196,9 @@ class RayPPOTrainer(object):
 
                         if 'rm_scores' in batch.batch.keys():
                             vr_coef = self.config.reward_model.get('verifiable_reward_coef', 1.0)
+                            rm_coef = self.config.reward_model.get('modeling_reward_coef', 1.0)
                             rm_scores = batch.batch['rm_scores']
-                            token_level_scores = token_level_vr * vr_coef + rm_scores
+                            token_level_scores = token_level_vr * vr_coef + rm_scores * rm_coef
                         else:
                             token_level_scores = token_level_vr
                         batch.batch['token_level_scores'] = token_level_scores
