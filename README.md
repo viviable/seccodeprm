@@ -1,6 +1,6 @@
 <div align="center">
 
-# Stop Gamma Decay: Min-Form Credit Assignment Is All Process Reward Model Needs for Reasoning
+# Stop Summation: Min-Form Credit Assignment Is All Process Reward Model Needs for Reasoning
 
 [![Paper](https://img.shields.io/badge/paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2502.01456)  [![Github](https://img.shields.io/badge/PURE-000000?style=for-the-badge&logo=github&logoColor=000&logoColor=white)](https://github.com/CJReinforce/PURE)  [![GitHub Stars](https://img.shields.io/github/stars/CJReinforce/PURE?style=for-the-badge&logo=github&logoColor=white&label=Stars&color=000000)](https://github.com/CJReinforce/PURE)  [![Hugging Face Collection](https://img.shields.io/badge/PURE_Collection-fcd022?style=for-the-badge&logo=huggingface&logoColor=000)](https://huggingface.co/collections/jinachris/pure-67a85510dc24acd26bb8109f)
 
@@ -98,7 +98,7 @@ We use [Qwen Math's codebase](https://github.com/QwenLM/Qwen2.5-Math/tree/main/e
 ## 📝 TODO:
 
 - [x] re-implementation on [verl](https://github.com/volcengine/verl)
-- [ ] paper with more discussions and evaluations
+- [x] paper with more discussions and evaluations
 - [ ] attempts to mitigate reward hacking for PRM (Online PURE)
 
 ## 🎈 Citation
@@ -106,12 +106,10 @@ We use [Qwen Math's codebase](https://github.com/QwenLM/Qwen2.5-Math/tree/main/e
 If you find our code useful, we would appreciate it if you could cite our work:
 
 ```bibtex
-@misc{cheng2025pure,
-  title={Stop Gamma Decay: Min-Form Credit Assignment Is All Process Reward Model Needs for Reasoning},
-  author={Jie Cheng and Lijun Li and Gang Xiong and Jing Shao and Yisheng Lv and Fei-Yue Wang},
-  year={2025},
-  howpublished={\url{https://tungsten-ink-510.notion.site/Stop-Gamma-Decay-Min-Form-Credit-Assignment-Is-All-Process-Reward-Model-Needs-for-Reasoning-19fcb6ed0184804eb07fd310b38af155?pvs=4}},
-  note={Notion Blog}
+@article{cheng2025stop,
+  title={Stop Summation: Min-Form Credit Assignment Is All Process Reward Model Needs for Reasoning},
+  author={Cheng, Jie and Qiao, Ruixi and Li, Lijun and Guo, Chao and Wang, Junle and Xiong, Gang and Lv, Yisheng and Wang, Fei-Yue},
+  journal={arXiv preprint arXiv:2504.15275},
   year={2025}
 }
 ```
