@@ -2,7 +2,7 @@
 
 # Stop Summation: Min-Form Credit Assignment Is All Process Reward Model Needs for Reasoning
 
-[![Paper](https://img.shields.io/badge/paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2502.01456)  [![Github](https://img.shields.io/badge/PURE-000000?style=for-the-badge&logo=github&logoColor=000&logoColor=white)](https://github.com/CJReinforce/PURE)  [![GitHub Stars](https://img.shields.io/github/stars/CJReinforce/PURE?style=for-the-badge&logo=github&logoColor=white&label=Stars&color=000000)](https://github.com/CJReinforce/PURE)  [![Hugging Face Collection](https://img.shields.io/badge/PURE_Collection-fcd022?style=for-the-badge&logo=huggingface&logoColor=000)](https://huggingface.co/collections/jinachris/pure-67a85510dc24acd26bb8109f)
+[![Paper](https://img.shields.io/badge/paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2504.15275)  [![Github](https://img.shields.io/badge/PURE-000000?style=for-the-badge&logo=github&logoColor=000&logoColor=white)](https://github.com/CJReinforce/PURE)  [![GitHub Stars](https://img.shields.io/github/stars/CJReinforce/PURE?style=for-the-badge&logo=github&logoColor=white&label=Stars&color=000000)](https://github.com/CJReinforce/PURE)  [![Hugging Face Collection](https://img.shields.io/badge/PURE_Collection-fcd022?style=for-the-badge&logo=huggingface&logoColor=000)](https://huggingface.co/collections/jinachris/pure-67a85510dc24acd26bb8109f)
 
 </div>
 
