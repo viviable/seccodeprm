@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 import transformers
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from torch import distributed as dist
 from trl import PRMConfig, PRMTrainer
 
@@ -42,9 +42,12 @@ def safe_save_model_for_hf_trainer(
 def make_supervised_data_module(data_args) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     assert data_args.train_data_path is not None
-    
-    train_dataset = load_dataset(data_args.train_data_path, split="train")
-    eval_dataset = load_dataset(data_args.train_data_path, split="test")
+    if 'bigvul' in data_args.train_data_path:
+        train_dataset = load_from_disk(data_args.train_data_path)['train']
+        eval_dataset = load_from_disk(data_args.train_data_path)['test']
+    else:
+        train_dataset = load_dataset(data_args.train_data_path, split="train")
+        eval_dataset = load_dataset(data_args.train_data_path, split="test")
 
     return dict(
         train_dataset=train_dataset, 

@@ -1,4 +1,4 @@
-GPUS_PER_NODE=8
+GPUS_PER_NODE=1
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path <path to Qwen2.5-Math-7B> \
-    --train_data_path "HuggingFaceH4/prm800k-trl-dedup" \
+    --model_name_or_path Qwen/Qwen2.5-7B-Instruct \
+    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset" \
     --fix_llm True \
     --num_train_epochs 3 \
     --learning_rate 1e-4 \
-    --run_name <run_name> \
-    --output_dir <output_dir> \
+    --run_name test0 \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/test0 \
     --bf16 True \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 1 \
