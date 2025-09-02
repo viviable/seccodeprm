@@ -4,29 +4,32 @@ import json
 import os
 import random
 from copy import deepcopy
-
+import gc
 import numpy as np
 import torch
 import transformers
 from accelerate import Accelerator
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from torch.utils.data import DataLoader, DistributedSampler
 from tqdm import tqdm
 
 
-def collate_fn(batch, tokenizer, separator = '\n'):
+def collate_fn(batch, tokenizer, separator = '\n\n'):
     input_ids = []
     score_ids = []
     labels = []
     separator_ids = tokenizer.encode(separator, add_special_tokens=False, return_tensors='pt')
     for i in batch:
-        prompt_ids = tokenizer(i['problem'], add_special_tokens=False, return_tensors='pt')['input_ids']
+        prompt_ids = tokenizer(i['prompt'], add_special_tokens=False, return_tensors='pt')['input_ids']
         score_ids.append([])
-        for completion in i['steps']:
+        for completion in i['completions']:
             completion_ids = tokenizer(completion, add_special_tokens=False, return_tensors='pt')['input_ids']
             prompt_ids = torch.cat([prompt_ids, completion_ids, separator_ids], dim=-1)
             score_ids[-1].append(prompt_ids.size(-1) - 1)
-        labels.append(i['label'])
+        if all(_ == 1 for _ in i['labels']):
+            labels.append(-1)
+        else:
+            labels.append(i['labels'].index(0))
         input_ids.append(prompt_ids)
     
     # right pad input_ids
@@ -72,6 +75,10 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
+def clear_cache():
+    torch.cuda.empty_cache()
+    gc.collect()
+
 def main(args):
     bs = args.batch_size
     num_of_workers = args.num_of_workers
@@ -82,10 +89,7 @@ def main(args):
     model_name = model_path.split('/')[-1]
 
     configs = {
-        # 'gsm8k': [207, 193], # error / correct num
-        'math': [594, 406], 
-        'olympiadbench': [661, 339], 
-        'omnimath': [759, 241],
+        'bigvul': 34076, 
     }
     all_f1_scores = []
     save_dir = f'outputs/{model_name}'
@@ -99,7 +103,9 @@ def main(args):
     model.eval()
 
     for config, num in configs.items():
-        dataset = load_dataset("Qwen/ProcessBench", split=config)
+        dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
+        # dataset = dataset.select(range(1000))
+
         sampler = None
         if accelerator.distributed_type == "MULTI_GPU":
             sampler = DistributedSampler(
@@ -123,38 +129,47 @@ def main(args):
 
             batch = collate_fn(batch_, tokenizer, separator)
             input_ids = batch['input_ids'].to(accelerator.device)
+            input_ids = input_ids.to(torch.long)
             labels = batch['labels']
             score_ids = batch['score_ids']
-
+            # print('weichen',input_ids.dtype)
             with accelerator.autocast(), torch.no_grad():
                 outputs = model(input_ids)
                 logits = outputs.logits
-                import pdb; pdb.set_trace()
-                print('weichen',logits.shape)
+            
+            criterion = 'softmax'
+            # criterion = 'simple_compare'
             
             for i, score_id in enumerate(score_ids):
                 label = labels[i]
                 prob = logits[i, score_id].softmax(dim=-1)  # (steps, 2)
                 score = prob[:, 1] - prob[:, 0]  # (steps,)
-                pred_or = ((-score / temperature).softmax(dim=-1) * score).sum()
-                if (label != -1 and pred_or <= 0) or (label == -1 and pred_or > 0):
-                    new_batch[i]['match'] = True
+                if criterion == 'softmax':
+                    pred_or = ((-score / temperature).softmax(dim=-1) * score).sum()
+                    if (label != -1 and pred_or <= 0) or (label == -1 and pred_or > 0):
+                        new_batch[i]['match'] = True
+                    else:
+                        new_batch[i]['match'] = False
+                elif criterion == 'simple_compare':
+                    if (label != -1 and score[-1] <= 0) or (label == -1 and score[-1] > 0):
+                        new_batch[i]['match'] = True
+                    else:
+                        new_batch[i]['match'] = False
                 else:
-                    new_batch[i]['match'] = False
+                    raise ValueError(f'Invalid criterion: {criterion}')
+                # print('weichen',pred_or)
+                
             
             res_data.extend(new_batch)
+            # clear_cache()
         
         accelerator.wait_for_everyone()
         gathered_data = gather_objects(res_data, accelerator)
 
         if accelerator.is_main_process:
-            data1 = [e for e in gathered_data if e['label'] != -1]
-            data2 = [e for e in gathered_data if e['label'] == -1]
-            # dataset length check
-            if len(data1) != num[0]:
-                print(f'{config} error num mismatch: {len(data1)} != {num[0]}')
-            if len(data2) != num[1]:
-                print(f'{config} correct num mismatch: {len(data2)} != {num[1]}')
+            data1 = [e for e in gathered_data if 0 in e['labels']]  # vulnerable
+            data2 = [e for e in gathered_data if 0 not in e['labels']]  # non-vulnerable
+            
             
             acc1 = np.mean([e['match'] for e in data1]) * 100
             acc2 = np.mean([e['match'] for e in data2]) * 100

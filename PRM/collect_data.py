@@ -136,10 +136,10 @@ def main():
                 for block in code1_blocks:
                     if block['type'] == 'diff':
                         completion1.extend(block['content'].split('\n\n'))
-                        labels1.extend([-1] * len(block['content'].split('\n\n')))
+                        labels1.extend([0] * len(block['content'].split('\n\n')))  # 0 = vulnerable/bad
                     else:
                         completion1.extend(block['content'].split('\n\n'))
-                        labels1.extend([1] * len(block['content'].split('\n\n')))
+                        labels1.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
                 
                 # Process code2 (fixed version)
                 completion2 = []
@@ -147,10 +147,10 @@ def main():
                 for block in code2_blocks:
                     if block['type'] == 'diff':
                         completion2.extend(block['content'].split('\n\n'))
-                        labels2.extend([1] * len(block['content'].split('\n\n')))
+                        labels2.extend([2] * len(block['content'].split('\n\n')))
                     else:
                         completion2.extend(block['content'].split('\n\n'))
-                        labels2.extend([1] * len(block['content'].split('\n\n')))
+                        labels2.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
 
                 source = 'BIGVUL'
                 other_info = { k: data[k] for k in data.keys() if k not in ['func_before', 'func_after', 'vul'] }
@@ -178,7 +178,7 @@ def main():
         print(f"Completed {split_name} split: {len(split_data)} examples")
     
     # Save all splits together as one DatasetDict (most efficient for datasets library)
-    vul_dataset.save_to_disk('/project/flame/wyu3/PRM/bigvul_processed_dataset')
+    vul_dataset.save_to_disk('/project/flame/wyu3/PRM/bigvul_processed_dataset_2')
     
     
 

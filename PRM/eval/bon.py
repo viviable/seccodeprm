@@ -27,7 +27,7 @@ def make_step_rewards(logits, token_masks):
     return all_scores_res
 
 
-model_name = "jinachris/PURE-PRM-7B"
+model_name = "Qwen/Qwen2.5-Math-PRM-7B"
 device = "auto"
 
 tokenizer = AutoTokenizer.from_pretrained(
