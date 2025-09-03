@@ -17,7 +17,7 @@ from tqdm import tqdm
 def collate_fn(batch, tokenizer, separator = '\n\n'):
     input_ids = []
     score_ids = []
-    labels = []
+    label = []
     separator_ids = tokenizer.encode(separator, add_special_tokens=False, return_tensors='pt')
     for i in batch:
         prompt_ids = tokenizer(i['prompt'], add_special_tokens=False, return_tensors='pt')['input_ids']
@@ -27,9 +27,9 @@ def collate_fn(batch, tokenizer, separator = '\n\n'):
             prompt_ids = torch.cat([prompt_ids, completion_ids, separator_ids], dim=-1)
             score_ids[-1].append(prompt_ids.size(-1) - 1)
         if all(_ == 1 for _ in i['labels']):
-            labels.append(-1)
+            label.append(-1)
         else:
-            labels.append(i['labels'].index(0))
+            label.append(i['labels'].index(0))
         input_ids.append(prompt_ids)
     
     # right pad input_ids
@@ -43,9 +43,11 @@ def collate_fn(batch, tokenizer, separator = '\n\n'):
             )
         ])
     input_ids = torch.stack(input_ids)
-
+    labels = [i['labels'] for i in batch]
+    
     return dict(
         input_ids=input_ids,
+        label=label,
         labels=labels,
         score_ids=score_ids
     )
@@ -104,7 +106,7 @@ def main(args):
 
     for config, num in configs.items():
         dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
-        # dataset = dataset.select(range(1000))
+        # dataset = dataset.select(range(10))
 
         sampler = None
         if accelerator.distributed_type == "MULTI_GPU":
@@ -130,6 +132,7 @@ def main(args):
             batch = collate_fn(batch_, tokenizer, separator)
             input_ids = batch['input_ids'].to(accelerator.device)
             input_ids = input_ids.to(torch.long)
+            label = batch['label']
             labels = batch['labels']
             score_ids = batch['score_ids']
             # print('weichen',input_ids.dtype)
@@ -137,31 +140,40 @@ def main(args):
                 outputs = model(input_ids)
                 logits = outputs.logits
             
-            criterion = 'softmax'
-            # criterion = 'simple_compare'
+            # criterion = 'softmax'
+            # criterion = 'simple'
+            criterion = args.criterion
             
             for i, score_id in enumerate(score_ids):
-                label = labels[i]
+                label_ = label[i]
                 prob = logits[i, score_id].softmax(dim=-1)  # (steps, 2)
                 score = prob[:, 1] - prob[:, 0]  # (steps,)
                 if criterion == 'softmax':
                     pred_or = ((-score / temperature).softmax(dim=-1) * score).sum()
-                    if (label != -1 and pred_or <= 0) or (label == -1 and pred_or > 0):
+                    if (label_ != -1 and pred_or <= 0) or (label_ == -1 and pred_or > 0):
                         new_batch[i]['match'] = True
                     else:
                         new_batch[i]['match'] = False
-                elif criterion == 'simple_compare':
-                    if (label != -1 and score[-1] <= 0) or (label == -1 and score[-1] > 0):
+                elif criterion == 'simple':
+                    if (label_ != -1 and score[-1] <= 0) or (label_ == -1 and score[-1] > 0):
                         new_batch[i]['match'] = True
                     else:
                         new_batch[i]['match'] = False
+                elif criterion == 'allsteps':
+                    acc_allsteps_per_sample = [(labels[i][j]==1) == (score.cpu()>0)[j] for j in range(len(score))]
+                    new_batch[i]['match'] = np.array(acc_allsteps_per_sample).mean()
+                    print('acc_allsteps_per_sample', acc_allsteps_per_sample)
+                    print('new_batch[i]["match"]', new_batch[i]['match'])
+                   
+                    
                 else:
                     raise ValueError(f'Invalid criterion: {criterion}')
                 # print('weichen',pred_or)
                 
             
             res_data.extend(new_batch)
-            # clear_cache()
+        print('length of res_data', len(res_data))
+        clear_cache()
         
         accelerator.wait_for_everyone()
         gathered_data = gather_objects(res_data, accelerator)
@@ -193,6 +205,7 @@ if __name__ == '__main__':
     parser.add_argument("-w", "--num_of_workers", type=int, default=4)
     parser.add_argument("-s", "--separator", type=str, default="\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
+    parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps"], type=str, default="softmax")
     args = parser.parse_args()
 
     set_seed(42)

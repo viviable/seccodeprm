@@ -1,8 +1,8 @@
-GPUS_PER_NODE=8
+GPUS_PER_NODE=4
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
-MASTER_PORT=46001
+MASTER_PORT=46003
 
 DISTRIBUTED_ARGS="
     --nproc_per_node $GPUS_PER_NODE \
@@ -13,15 +13,15 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path <path to ckpt of stage-1> \
-    --train_data_path "HuggingFaceH4/prm800k-trl-dedup" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/test1/checkpoint-7485 \
+    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset" \
     --fix_llm False \
     --num_train_epochs 1 \
     --learning_rate 1e-6 \
-    --run_name <run_name> \
-    --output_dir <output_dir> \
+    --run_name run1_2 \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/run1_2 \
     --bf16 True \
-    --per_device_train_batch_size 16 \
+    --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
