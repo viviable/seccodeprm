@@ -28,19 +28,27 @@ def main():
             prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
             prompts.append(prompt)
             labels.append(data["labels"][i])
+            
+    acc = 0
     batch_size = 16
     results = []
+    
     for i in range(0, len(prompts), batch_size):
-        prompts_batch = prompts[i:i+batch_size]
-        labels_batch = labels[i:i+batch_size]
+        max_len = min(i+batch_size, len(prompts))
+        prompts_batch = prompts[i:max_len]
+        labels_batch = labels[i:max_len]
+        import pdb; pdb.set_trace()
         outputs = llm.generate(prompts_batch, sampling_params)
-        for output in outputs:
+        
+        for j in range(max_len - i):
+            output = outputs[j]
             vul = extract_label(output)
             results.append(output)
-            if vul == labels_batch[i]:
+            if vul == labels_batch[j]:
                 acc += 1
                 
     acc = acc / len(results)
+    print(f"Accuracy: {acc}")
     
     
     

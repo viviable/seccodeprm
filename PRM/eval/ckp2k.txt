@@ -1,1 +1,4 @@
 Loading model from /project/flame/wyu3/PRM/output/stage1/test2/checkpoint-2000
+length of res_data 34076
+bigvul error acc: 42.7, correct acc: 99.2, f1: 59.7
+ProcessBench. Average F1: 59.7

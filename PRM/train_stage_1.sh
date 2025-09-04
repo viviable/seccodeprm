@@ -18,8 +18,8 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --fix_llm True \
     --num_train_epochs 3 \
     --learning_rate 1e-4 \
-    --run_name test0 \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/test3_coder \
+    --run_name test_coder_replicate_4 \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/test_coder_replicate_4 \
     --bf16 True \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \

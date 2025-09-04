@@ -95,7 +95,7 @@ def compare_code_blocks(code1: str, code2: str) -> Tuple[List[dict], List[dict]]
     return list1, list2
 
 
-def main():
+def main(path):
     ## 
     # Create DatasetDict once to hold all splits
     vul_dataset = DatasetDict()
@@ -147,7 +147,7 @@ def main():
                 for block in code2_blocks:
                     if block['type'] == 'diff':
                         completion2.extend(block['content'].split('\n\n'))
-                        labels2.extend([2] * len(block['content'].split('\n\n')))
+                        labels2.extend([1] * len(block['content'].split('\n\n')))
                     else:
                         completion2.extend(block['content'].split('\n\n'))
                         labels2.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
@@ -178,9 +178,10 @@ def main():
         print(f"Completed {split_name} split: {len(split_data)} examples")
     
     # Save all splits together as one DatasetDict (most efficient for datasets library)
-    vul_dataset.save_to_disk('/project/flame/wyu3/PRM/bigvul_processed_dataset_2')
+    vul_dataset.save_to_disk(path)
     
     
 
 if __name__ == "__main__":
-    main()
+    path = './bigvul_processed_dataset'
+    main(path)
