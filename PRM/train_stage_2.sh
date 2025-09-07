@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/test1/checkpoint-7485 \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/test_coder_rep_4 \
     --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset" \
     --fix_llm False \
     --num_train_epochs 1 \
     --learning_rate 1e-6 \
-    --run_name run1_2 \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/run1_2 \
+    --run_name rep4 \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/rep4 \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \
@@ -27,7 +27,7 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 500 \
-    --save_total_limit 3 \
+    --save_total_limit 10 \
     --weight_decay 0.1 \
     --adam_beta2 0.95 \
     --warmup_ratio 0.0 \

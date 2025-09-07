@@ -1,4 +1,4 @@
-from datasets import load_dataset, DatasetDict, Dataset
+from datasets import load_dataset, DatasetDict, Dataset, load_from_disk
 from tqdm import tqdm
 
 from difflib import SequenceMatcher
@@ -94,6 +94,33 @@ def compare_code_blocks(code1: str, code2: str) -> Tuple[List[dict], List[dict]]
     
     return list1, list2
 
+def one_zero_dataset(path):
+    dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")
+    new_dataset = DatasetDict()
+    
+    # Initialize empty lists for each split
+    for split_name in ['test', 'train', 'validation']:
+        new_dataset[split_name] = []
+        
+        for data in dataset[split_name]:
+            new_data = {}
+            if 0 in data['labels']:
+                first_zero_index = data['labels'].index(0)
+                
+                new_data['labels'] = data['labels'].copy()  # Make a copy first
+                # Set all labels from first_zero_index onwards to 0
+                for i in range(first_zero_index, len(new_data['labels'])):
+                    new_data['labels'][i] = 0
+                new_data['completions'] = data['completions']
+                new_data['prompt'] = data['prompt']
+                new_data['source'] = data['source']
+                new_data['other_info'] = data['other_info']
+                new_data['index'] = data['index']
+                new_dataset[split_name].append(new_data)
+            else:
+                new_dataset[split_name].append(data)
+        new_dataset[split_name] = Dataset.from_list(new_dataset[split_name])
+    new_dataset.save_to_disk(path)
 
 def main(path):
     ## 
@@ -183,5 +210,7 @@ def main(path):
     
 
 if __name__ == "__main__":
-    path = './bigvul_processed_dataset'
-    main(path)
+    # path = './bigvul_processed_dataset'
+    # main(path)
+    path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
+    one_zero_dataset(path)

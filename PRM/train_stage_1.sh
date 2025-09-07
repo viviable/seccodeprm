@@ -2,7 +2,7 @@ GPUS_PER_NODE=4
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
-MASTER_PORT=46002
+MASTER_PORT=46001
 
 DISTRIBUTED_ARGS="
     --nproc_per_node $GPUS_PER_NODE \
@@ -14,12 +14,12 @@ DISTRIBUTED_ARGS="
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
     --model_name_or_path Qwen/Qwen2.5-Coder-7B-Instruct \
-    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset" \
+    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero" \
     --fix_llm True \
     --num_train_epochs 3 \
     --learning_rate 1e-4 \
-    --run_name test_coder_replicate_4 \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/test_coder_replicate_4 \
+    --run_name test_coder_one_zero_rep4 \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/test_coder_one_zero_rep4 \
     --bf16 True \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \

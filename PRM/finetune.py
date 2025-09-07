@@ -45,15 +45,23 @@ def make_supervised_data_module(data_args) -> Dict:
     if 'bigvul' in data_args.train_data_path:
         train_dataset = load_from_disk(data_args.train_data_path)['train']
         eval_dataset = load_from_disk(data_args.train_data_path)['test']
-        
-        # Step 1: Filter data with label 0
-        minority_data = train_dataset.filter(lambda x: 0 in x['labels'])
-        # Step 2: Replicate the minority data
-        replicate_ratio = 4
-        replicated_datasets = [minority_data] * replicate_ratio
-        # Step 3: Concatenate original dataset with replicated minority data
-        balanced_dataset = concatenate_datasets([train_dataset] + replicated_datasets)
-        balanced_dataset = balanced_dataset.shuffle(seed=42)
+        resample = True
+        if resample:
+            # Step 1: Filter data with label 0
+            minority_data = train_dataset.filter(lambda x: 0 in x['labels'])
+            # Step 2: Replicate the minority data
+            replicate_ratio = 4
+            replicated_datasets = [minority_data] * replicate_ratio
+            # Step 3: Concatenate original dataset with replicated minority data
+            balanced_dataset = concatenate_datasets([train_dataset] + replicated_datasets)
+            balanced_dataset = balanced_dataset.shuffle(seed=42)
+        else:
+            balanced_dataset = train_dataset
+            
+        only_vul = False
+        if only_vul:
+            balanced_dataset = balanced_dataset.filter(lambda x: 0 in x['labels'])
+       
         
     else:
         train_dataset = load_dataset(data_args.train_data_path, split="train")
