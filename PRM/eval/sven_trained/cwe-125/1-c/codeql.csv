@@ -1,0 +1,2 @@
+"Check for CWE-125 in my2","","warning","cwe_125 found in/home/wyu3/workspace/PURE/PRM/eval/sven_trained/cwe-125/1-c/output/01.c","/01.c","20","12","20","21"
+"Check for CWE-125 in my2","","warning","cwe_125 found in/home/wyu3/workspace/PURE/PRM/eval/sven_trained/cwe-125/1-c/output/04.c","/04.c","18","16","18","25"

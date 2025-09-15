@@ -1,0 +1,1 @@
+"User-controlled data in arithmetic expression","Arithmetic operations on user-controlled data that is not validated can cause overflows.","warning","[[""User-provided value""|""relative:///04.c:10:22:10:25""]] flows to an operand of an arithmetic expression, potentially causing an overflow.","/04.c","14","9","14","13"

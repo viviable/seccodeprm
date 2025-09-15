@@ -162,15 +162,11 @@ def main(args):
                 elif criterion == 'allsteps':
                     acc_allsteps_per_sample = [(labels[i][j]==1) == (score.cpu()>0)[j] for j in range(len(score))]
                     new_batch[i]['match'] = np.array(acc_allsteps_per_sample).mean()
-                    print('acc_allsteps_per_sample', acc_allsteps_per_sample)
+                    # print('acc_allsteps_per_sample', acc_allsteps_per_sample)
                     print('new_batch[i]["match"]', new_batch[i]['match'])
-                   
-                    
                 else:
                     raise ValueError(f'Invalid criterion: {criterion}')
                 # print('weichen',pred_or)
-                
-            
             res_data.extend(new_batch)
         print('length of res_data', len(res_data))
         clear_cache()

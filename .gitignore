@@ -8,7 +8,7 @@
 **/playground
 **/wandb
 verl_conda_env.yml
-
+PRM/eval/sven_trained/**
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,0 +1,3 @@
+"Returned pointer not checked","Dereferencing an untested value from a function that can return null may lead to undefined behavior.","recommendation","Value may be null; it should be checked before dereferencing.","/03.c","9","18","9","20"
+"Returned pointer not checked","Dereferencing an untested value from a function that can return null may lead to undefined behavior.","recommendation","Value may be null; it should be checked before dereferencing.","/04.c","7","11","7","13"
+"Returned pointer not checked","Dereferencing an untested value from a function that can return null may lead to undefined behavior.","recommendation","Value may be null; it should be checked before dereferencing.","/05.c","15","22","15","24"
