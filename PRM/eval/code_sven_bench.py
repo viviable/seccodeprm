@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import transformers
 from accelerate import Accelerator
-from datasets import load_dataset, load_from_disk
+from datasets import load_dataset, load_from_disk, Dataset
 from torch.utils.data import DataLoader, DistributedSampler
 from tqdm import tqdm
 
@@ -52,6 +52,7 @@ def collate_fn(batch, tokenizer, separator = '\n\n'):
         score_ids=score_ids
     )
     
+    
 def find_first_zero(tensor):
     zeros = (tensor == 0).nonzero()
     return zeros[0].item() if zeros.numel() > 0 else -1
@@ -81,6 +82,20 @@ def clear_cache():
     torch.cuda.empty_cache()
     gc.collect()
 
+def load_data(dataset_name):
+    if dataset_name == 'sven_train':
+        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")['train']
+    elif dataset_name == 'sven_train_no_py':
+        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['train']
+    elif dataset_name == 'sven_val':
+        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")['val']
+    elif dataset_name == 'sven_val_no_py':
+        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['val']
+    elif dataset_name == 'bigvul_test':
+        dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
+    else:
+        raise ValueError(f'Invalid dataset name: {dataset_name}')
+    return dataset
 
 def main(args):
     bs = args.batch_size
@@ -88,16 +103,16 @@ def main(args):
     separator = args.separator
     model_path = args.model
     temperature = args.temperature
+    dataset_name = args.dataset_name
 
     model_name = model_path.split('/')[-1]
 
     configs = {
-        'bigvul': 34076, 
-        'sven_train': 1000,
+        # 'bigvul_test': 34076, 
+        # 'sven_train': 1420,
+        'sven_val': 1420,
     }
     all_f1_scores = []
-    save_dir = f'outputs/{model_name}'
-    os.makedirs(save_dir, exist_ok=True)
 
     accelerator = Accelerator()
     print(f'Loading model from {model_path}')
@@ -108,10 +123,9 @@ def main(args):
 
     for config, num in configs.items():
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
-        # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
-        dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["test"]
-        
+        dataset = load_data(dataset_name)
         print('total number of vulnerable', sum([0 in dataset[i]['labels'] for i in range(len(dataset))]))
+        # val_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["test"]
         # train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["train"]
         # dataset = dataset.select(range(500))
         
@@ -161,7 +175,7 @@ def main(args):
                     else:
                         new_batch[i]['match'] = False
                     print(pred_or)
-                elif criterion == 'simple':
+                elif criterion == 'last_position':
                     if (label_ != -1 and score[-1] <= 0) or (label_ == -1 and score[-1] > 0):
                         new_batch[i]['match'] = True
                     else:
@@ -182,9 +196,7 @@ def main(args):
 
         if accelerator.is_main_process:
             data1 = [e for e in gathered_data if 0 in e['labels']]  # vulnerable
-            print('length of vulnerable', len(data1))
             data2 = [e for e in gathered_data if 0 not in e['labels']]  # non-vulnerable
-            print('length of non-vulnerable', len(data2))
             
             acc1 = np.mean([e['match'] for e in data1]) * 100
             acc2 = np.mean([e['match'] for e in data2]) * 100
@@ -204,11 +216,12 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", type=str)
-    parser.add_argument("-b", "--batch_size", type=int, default=24)
+    parser.add_argument("-d", "--dataset_name", choices=["sven_train", "sven_train_no_py", "sven_val", "sven_val_no_py", "bigvul_test"], type=str, default="sven_train")
+    parser.add_argument("-b", "--batch_size", type=int, default=1)
     parser.add_argument("-w", "--num_of_workers", type=int, default=4)
     parser.add_argument("-s", "--separator", type=str, default="\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
-    parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps"], type=str, default="softmax")
+    parser.add_argument("-c", "--criterion", choices=["softmax", "last_position", "allsteps"], type=str, default="softmax")
     args = parser.parse_args()
 
     set_seed(42)

@@ -1,9 +1,0 @@
----
-sourceLocationPrefix: "/home/wyu3/workspace/PURE/PRM/eval/sven_trained/cwe-079/1-py/output"
-baselineLinesOfCode: 134
-unicodeNewlines: false
-columnKind: "utf32"
-primaryLanguage: "python"
-creationMetadata:
-  cliVersion: "2.11.1"
-  creationTime: "2025-09-08T03:56:07.442840648Z"

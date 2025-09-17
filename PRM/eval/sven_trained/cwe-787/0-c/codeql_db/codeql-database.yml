@@ -1,9 +1,0 @@
----
-sourceLocationPrefix: "/home/wyu3/workspace/PURE/PRM/eval/sven_trained/cwe-787/0-c/output"
-baselineLinesOfCode: 354
-unicodeNewlines: false
-columnKind: "utf8"
-primaryLanguage: "cpp"
-creationMetadata:
-  cliVersion: "2.11.1"
-  creationTime: "2025-09-08T03:50:51.152638041Z"

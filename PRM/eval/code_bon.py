@@ -37,7 +37,7 @@ def load_n_prepare_dataset(ds_name):
             testset[vul_type].append(new_data)
         return testset
 
-def make_step_rewards(logits, token_masks, criterion2, temperature=0.9):
+def make_step_rewards(logits, token_masks, criterion2, temperature=0.1):
     all_scores_res = []
     for sample, token_mask in zip(logits, token_masks):
         # sample: (seq_len, num_labels)
@@ -63,7 +63,7 @@ def get_args():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str, default='Qwen/Qwen2.5-7B-Instruct')
-    parser.add_argument('--output_dir', type=str, default='/project/flame/wyu3/PRM/sven/sven_trained_100')
+    parser.add_argument('--output_dir', type=str, default='/home/wyu3/workspace/PURE/PRM/eval/sven_trained')
     parser.add_argument('--criterion2', type=str, choices=['softmax', 'last_position'], default='softmax')
     parser.add_argument('--criterion1', type=str, choices=['binary', 'min', 'ave', 'acc'], default='binary')
     parser.add_argument('--prm_name', type=str, default='Qwen/Qwen2.5-Math-PRM-7B')
@@ -160,6 +160,10 @@ def main():
             )['input_ids']
             outcome_scores = []
             labels = []
+            True_negative = 0
+            True_positive = 0
+            False_negative = 0
+            False_positive = 0
             for fname in os.listdir(out_src_dir):
                 if fname.endswith('.o') or fname.endswith('.py') or 'Makefile' in fname:
                     continue
@@ -177,17 +181,20 @@ def main():
                 with open(os.path.join(out_src_dir, fname), 'r') as f:
                     generated_code = f.read()
                 
+                generated_code = generated_code.replace('#include <stdio.h>', '')
+                generated_code = generated_code.replace('#include <stdlib.h>', '')
+                generated_code = generated_code.replace('#include <limits.h>', '')
+                generated_code = generated_code.replace('#include <string.h>', '')
+                generated_code = generated_code.replace('#include <stdbool.h>', '')
+                
                 
                 steps = [i.rstrip() for i in generated_code.split(step_separator)]
+                # import pdb; pdb.set_trace()
                 input_ids = question_ids.clone()
 
                 score_ids = []
                 for step in steps:
-                    step_ids = prm_tokenizer(
-                        step, 
-                        add_special_tokens=False, 
-                        return_tensors='pt',
-                    )['input_ids']
+                    step_ids = prm_tokenizer(step, add_special_tokens=False, return_tensors='pt')['input_ids']
                     input_ids = torch.cat(
                         [input_ids, step_ids, step_separator_token], 
                         dim=-1,
@@ -217,12 +224,21 @@ def main():
                         outcome_scores.append(outcome_reward.item())
                     elif criterion1 == 'acc':
                         pred_or = np.sum(step_reward)
+                        print(f'step_reward: {step_reward}')
                         print(f'pred_or: {pred_or}, label: {label}')
                         
-                        if (label == 0 and pred_or <= 0) or (label == 1 and pred_or > 0):
-                            outcome_reward = 1
+                        if (label == 0 and pred_or <= 0):
+                            True_negative += 1
+                        elif (label == 1 and pred_or > 0):
+                            True_positive += 1
+                        elif (label == 0 and pred_or > 0):
+                            False_negative += 1
+                        elif (label == 1 and pred_or <= 0):
+                            False_positive += 1
                         else:
-                            outcome_reward = 0
+                            raise ValueError(f'Invalid label: {label}')
+                        
+                        outcome_reward = 2*True_positive/(2*True_positive + False_positive + False_negative)
                         
                         outcome_scores.append(outcome_reward)
                     else:
@@ -254,7 +270,17 @@ def main():
                 print('--------------------------------')
                 ## acc
                 if criterion1 == 'acc':
-                    print(f'acc: {np.mean(outcome_scores)}')
+                    print(f'True_positive: {True_positive}, False_positive: {False_positive}, True_negative: {True_negative}, False_negative: {False_negative}')
+                    
+                    print(f'acc: {True_positive+True_negative/(True_positive + False_positive+True_negative+False_negative)}')
+                    if True_positive + False_positive != 0:
+                        print(f'Precision: {True_positive/(True_positive + False_positive)}')
+                    if True_positive + False_negative != 0:
+                        print(f'Recall: {True_positive/(True_positive + False_negative)}')
+                    if 2*True_positive + False_positive + False_negative != 0:
+                        print(f'F1: {2*True_positive/(2*True_positive + False_positive + False_negative)}')
+                    else:
+                        print(f'F1: 0')
                     acc_scores.extend(outcome_scores)
                 else:
                     for k in [1, 3, 5]:
@@ -282,7 +308,7 @@ def main():
             print(f'best_{k}_possible_safe_ratios:', np.mean(best_possible_safe_ratios[k]))
             print('average_safe_ratios:', np.mean(average_safe_ratios[k]))
     else:
-        print(f'acc: {np.mean(acc_scores)}')
+        print(f'f1: {np.mean(acc_scores)}')
 
 if __name__ == "__main__":
     main()

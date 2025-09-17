@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path Qwen/Qwen2.5-Coder-7B-Instruct \
-    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage2/rep4/checkpoint-4500 \
+    --train_data_path "/project/flame/wyu3/PRM/sven_processed_dataset" \
     --fix_llm True \
     --num_train_epochs 3 \
     --learning_rate 1e-4 \
-    --run_name test_coder_one_zero_rep4 \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/test_coder_one_zero_rep4 \
+    --run_name coder_last_s1_sven \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven \
     --bf16 True \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \

@@ -1,2 +1,0 @@
-"Uncontrolled command line","Using externally controlled strings in a command line may allow a malicious user to change the meaning of the command.","error","This command line depends on [[""a user-provided value""|""relative:///04.py:12:11:12:17""]].","/04.py","14","29","14","46"
-"Uncontrolled command line","Using externally controlled strings in a command line may allow a malicious user to change the meaning of the command.","error","This command line depends on [[""a user-provided value""|""relative:///08.py:12:11:12:17""]].","/08.py","14","26","14","43"
