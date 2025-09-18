@@ -1,4 +1,7 @@
-GPUS_PER_NODE=4
+# export OMP_NUM_THREADS=4  # 每个GPU进程2个线程
+# export MKL_NUM_THREADS=4
+
+GPUS_PER_NODE=1
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
@@ -16,7 +19,7 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --model_name_or_path /project/flame/wyu3/PRM/output/stage2/rep4/checkpoint-4500 \
     --train_data_path "/project/flame/wyu3/PRM/sven_processed_dataset" \
     --fix_llm True \
-    --num_train_epochs 3 \
+    --num_train_epochs 9 \
     --learning_rate 1e-4 \
     --run_name coder_last_s1_sven \
     --output_dir /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven \

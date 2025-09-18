@@ -88,9 +88,9 @@ def load_data(dataset_name):
     elif dataset_name == 'sven_train_no_py':
         dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['train']
     elif dataset_name == 'sven_val':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")['val']
+        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")['test']
     elif dataset_name == 'sven_val_no_py':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['val']
+        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['test']
     elif dataset_name == 'bigvul_test':
         dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
     else:
@@ -219,7 +219,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--dataset_name", choices=["sven_train", "sven_train_no_py", "sven_val", "sven_val_no_py", "bigvul_test"], type=str, default="sven_train")
     parser.add_argument("-b", "--batch_size", type=int, default=1)
     parser.add_argument("-w", "--num_of_workers", type=int, default=4)
-    parser.add_argument("-s", "--separator", type=str, default="\n", help="It's important to use the same separator as the one used during TRL training")
+    parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
     parser.add_argument("-c", "--criterion", choices=["softmax", "last_position", "allsteps"], type=str, default="softmax")
     args = parser.parse_args()

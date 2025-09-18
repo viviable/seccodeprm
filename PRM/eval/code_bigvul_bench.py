@@ -109,7 +109,7 @@ def main(args):
     for config, num in configs.items():
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
-        dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["test"]
+        dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["validation"]
         
         print('total number of vulnerable', sum([0 in dataset[i]['labels'] for i in range(len(dataset))]))
         # train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["train"]
@@ -171,6 +171,12 @@ def main(args):
                     new_batch[i]['match'] = np.array(acc_allsteps_per_sample).mean()
                     # print('acc_allsteps_per_sample', acc_allsteps_per_sample)
                     print('new_batch[i]["match"]', new_batch[i]['match'])
+                elif criterion == 'precise':
+                    first_zero = find_first_zero(score)
+                    if first_zero == label_:
+                        new_batch[i]['match'] = True
+                    else:
+                        new_batch[i]['match'] = False
                 else:
                     raise ValueError(f'Invalid criterion: {criterion}')
             res_data.extend(new_batch)
@@ -204,11 +210,11 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", type=str)
-    parser.add_argument("-b", "--batch_size", type=int, default=24)
+    parser.add_argument("-b", "--batch_size", type=int, default=1)
     parser.add_argument("-w", "--num_of_workers", type=int, default=4)
-    parser.add_argument("-s", "--separator", type=str, default="\n", help="It's important to use the same separator as the one used during TRL training")
+    parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
-    parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps"], type=str, default="softmax")
+    parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps", "precise"], type=str, default="softmax")
     args = parser.parse_args()
 
     set_seed(42)

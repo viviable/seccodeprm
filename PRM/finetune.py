@@ -42,10 +42,10 @@ def safe_save_model_for_hf_trainer(
 def make_supervised_data_module(data_args) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     assert data_args.train_data_path is not None
-    if 'bigvul' in data_args.train_data_path:
+    if 'bigvul' in data_args.train_data_path or 'precise' in data_args.train_data_path or 'sven' in data_args.train_data_path:
         train_dataset = load_from_disk(data_args.train_data_path)['train']
         eval_dataset = load_from_disk(data_args.train_data_path)['test']
-        resample = True
+        resample = False
         if resample:
             # Step 1: Filter data with label 0
             minority_data = train_dataset.filter(lambda x: 0 in x['labels'])
@@ -62,7 +62,7 @@ def make_supervised_data_module(data_args) -> Dict:
         if only_vul:
             balanced_dataset = balanced_dataset.filter(lambda x: 0 in x['labels'])
        
-        
+    
     else:
         train_dataset = load_dataset(data_args.train_data_path, split="train")
         eval_dataset = load_dataset(data_args.train_data_path, split="test")

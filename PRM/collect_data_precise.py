@@ -123,14 +123,12 @@ def one_zero_dataset(path):
         new_dataset[split_name] = Dataset.from_list(new_dataset[split_name])
     new_dataset.save_to_disk(path)
 
-def load_data(split_name):
-    json_path = f'/sven/data_train_val/{split_name}'
-    vul_list = [22, 78, 79, 89, 125, 190, 416, 476, 787]
+def load_data():
+    dir_path = '/project/flame/wyu3/PRM/PreciseBugs/CVEs'  ## 8487 examples
     data = []
-    for vul in vul_list:
-        file_name = f'cwe-{vul:03d}.jsonl'
-        with open(os.path.join(json_path, file_name), 'r') as f:
-            data.extend([json.loads(line) for line in f])
+    for file_name in os.listdir(dir_path):
+        with open(os.path.join(dir_path, file_name, 'BugEntry.json'), 'r') as f:
+            data.append(json.loads(f.read()))
     # turn data into Dataset
     dataset = Dataset.from_list(data)
     return dataset
@@ -141,67 +139,76 @@ def main(path):
     vul_dataset = DatasetDict()
     
     # Process each split
-    splits = ['train','val']
+    splits = ['train']
     for split_name in splits:
-        print(f"Processing {split_name} split...")
-        dataset = load_data(split_name)
+        dataset = load_data()
         split_data = []
         
         for index, data in enumerate(tqdm(dataset, desc=f"Processing {split_name}")):
             # if data['file_name'].endswith('.py'):
             #     continue
-            code1 = data['func_src_before']
-            code2 = data['func_src_after']
-            code1_blocks, code2_blocks = compare_code_blocks(code1, code2)
-            prompt = 'Determine whether the {function_name} code is vulnerable or not.'
+            for i in range(len(data['buggy_code'])):
             
-            # Process code1 (vulnerable version)
-            completion1 = []
-            labels1 = []
-            for block in code1_blocks:
-                if block['type'] == 'diff':
-                    completion1.extend(block['content'].split('\n\n'))
-                    labels1.extend([0] * len(block['content'].split('\n\n')))  # 0 = vulnerable/bad
-                else:
-                    completion1.extend(block['content'].split('\n\n'))
-                    labels1.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
-            if not 0 in labels1:
-                labels1[-1] = 0
-            
-            # Process code2 (fixed version)
-            completion2 = []
-            labels2 = []
-            for block in code2_blocks:
-                if block['type'] == 'diff':
-                    completion2.extend(block['content'].split('\n\n'))
-                    labels2.extend([1] * len(block['content'].split('\n\n')))
-                else:
-                    completion2.extend(block['content'].split('\n\n'))
-                    labels2.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
+                code1 = data['buggy_code'][i]
+                code2 = data['fixing_code'][i]
+                code1_blocks, code2_blocks = compare_code_blocks(code1, code2)
+                prompt = 'Determine whether the {function_name} code is vulnerable or not.'
+                
+                # Process code1 (vulnerable version)
+                completion1 = []
+                labels1 = []
+                for block in code1_blocks:
+                    if block['type'] == 'diff':
+                        completion1.extend(block['content'].split('\n\n'))
+                        labels1.extend([0] * len(block['content'].split('\n\n')))  # 0 = vulnerable/bad
+                    else:
+                        completion1.extend(block['content'].split('\n\n'))
+                        labels1.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
+                if not 0 in labels1:
+                    labels1[-1] = 0
+                
+                # Process code2 (fixed version)
+                completion2 = []
+                labels2 = []
+                for block in code2_blocks:
+                    if block['type'] == 'diff':
+                        completion2.extend(block['content'].split('\n\n'))
+                        labels2.extend([1] * len(block['content'].split('\n\n')))
+                    else:
+                        completion2.extend(block['content'].split('\n\n'))
+                        labels2.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
 
-            source = 'SVEN'
-            other_info = { k: data[k] for k in data.keys() if k not in ['func_src_before', 'func_src_after'] }
+                source = 'PreciseBugs'
+                other_info = { k: data[k] for k in data.keys() if k not in ['buggy_code', 'fixing_code'] }
+                
+                # Add both versions
+                split_data.append({
+                    'prompt': prompt,
+                    'completions': completion1,
+                    'labels': labels1,
+                    'source': source,
+                    'other_info': other_info,
+                    'index': index
+                })
+                split_data.append({
+                    'prompt': prompt,
+                    'completions': completion2,
+                    'labels': labels2,
+                    'source': source,
+                    'other_info': other_info,
+                    'index': index
+                })
             
-            # Add both versions
-            split_data.append({
-                'prompt': prompt,
-                'completions': completion1,
-                'labels': labels1,
-                'source': source,
-                'other_info': other_info,
-                'index': index
-            })
-            split_data.append({
-                'prompt': prompt,
-                'completions': completion2,
-                'labels': labels2,
-                'source': source,
-                'other_info': other_info,
-                'index': index
-            })
-        
         # Convert list to Dataset and add to DatasetDict
-        vul_dataset[split_name] = Dataset.from_list(split_data)
+        import pdb; pdb.set_trace()
+        total_number = len(split_data)
+        train_data = split_data[:int(total_number * 0.8)]
+        val_data = split_data[int(total_number * 0.8):int(total_number * 0.9)]
+        test_data = split_data[int(total_number * 0.9):]
+        
+        vul_dataset['train'] = Dataset.from_list(train_data)
+        vul_dataset['val'] = Dataset.from_list(val_data)
+        vul_dataset['test'] = Dataset.from_list(test_data)
         print(f"Completed {split_name} split: {len(split_data)} examples")
     
     # Save all splits together as one DatasetDict (most efficient for datasets library)
@@ -210,7 +217,7 @@ def main(path):
     
 
 if __name__ == "__main__":
-    path = './sven_processed_dataset'
+    path = './precisebugs_processed_dataset'
     main(path)
     # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
     # one_zero_dataset(path)
