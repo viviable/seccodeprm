@@ -92,9 +92,9 @@ def main(args):
     model_name = model_path.split('/')[-1]
 
     configs = {
-        'primevul_test': 806,
+        # 'primevul_test_paired': ’/project/flame/wyu3/PRM/primevul_processed_dataset‘,
+        'primevul_test_unpaired':  '/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired',
     }
-    all_f1_scores = []
     save_dir = f'outputs/{model_name}'
     os.makedirs(save_dir, exist_ok=True)
 
@@ -105,10 +105,10 @@ def main(args):
     model = accelerator.prepare(model)
     model.eval()
 
-    for config, num in configs.items():
+    for config, dataset_path in configs.items():
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
-        dataset = load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["test"]
+        dataset = load_from_disk(dataset_path)["test"]
         
         print('total number of vulnerable', sum([0 in dataset[i]['labels'] for i in range(len(dataset))]))
         # train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["train"]
@@ -159,12 +159,20 @@ def main(args):
                         new_batch[i]['match'] = True
                     else:
                         new_batch[i]['match'] = False
-                    print(pred_or)
+                    if pred_or <= 0:
+                        new_batch[i]['pred'] = 1
+                    else:
+                        new_batch[i]['pred'] = 0
+                        
                 elif criterion == 'simple':
                     if (label_ != -1 and score[-1] <= 0) or (label_ == -1 and score[-1] > 0):
                         new_batch[i]['match'] = True
                     else:
                         new_batch[i]['match'] = False
+                    if score[-1] <= 0:
+                        new_batch[i]['pred'] = 1
+                    else:
+                        new_batch[i]['pred'] = 0
                 elif criterion == 'allsteps':
                     acc_allsteps_per_sample = [(labels[i][j]==1) == (score.cpu()>0)[j] for j in range(len(score))]
                     new_batch[i]['match'] = np.array(acc_allsteps_per_sample).mean()
@@ -186,6 +194,7 @@ def main(args):
         gathered_data = gather_objects(res_data, accelerator)
 
         if accelerator.is_main_process:
+            
             data1 = [e for e in gathered_data if 0 in e['labels']]  # vulnerable
             print('length of vulnerable', len(data1))
             data2 = [e for e in gathered_data if 0 not in e['labels']]  # non-vulnerable
@@ -194,7 +203,7 @@ def main(args):
             acc1 = np.mean([e['match'] for e in data1]) * 100
             acc2 = np.mean([e['match'] for e in data2]) * 100
             f1 = 2 * acc1 * acc2 / (acc1 + acc2)
-            print(f'{config} error acc: {acc1:.1f}, correct acc: {acc2:.1f}, f1: {f1:.1f}')
+            print(f'{config} error acc: {acc1}, correct acc: {acc2}, f1: {f1}')
 
             TP = np.sum([e['match'] for e in data1])
             FP = np.sum([not e['match'] for e in data1])
@@ -203,11 +212,34 @@ def main(args):
             precision = TP / (TP + FP)
             recall = TP / (TP + FN) 
             f1_ = 2 * precision * recall / (precision + recall)
-            print(f'{config} precision: {precision:.1f}, recall: {recall:.1f}, f1: {f1_:.1f}')
-            all_f1_scores.append(f1_)
+            print(f'{config} precision: {precision}, recall: {recall}, f1: {f1_}')
+            
+            ### calculate pairwise
+            if config == 'primevul_test_paired':
+                PC = 0
+                PV = 0
+                PB = 0
+                PR = 0
+                for i in range(len(gathered_data)):
+                    index = gathered_data[i]['index']
+                    for j in range(len(gathered_data)):
+                        if gathered_data[j]['index'] == index and gathered_data[j]['labels'] != gathered_data[i]['labels']:
+                            paired_data = gathered_data[j]
+                            
+                            if paired_data['match'] and gathered_data[i]['match']:
+                                PC += 1
+                            elif paired_data['pred'] and gathered_data[i]['pred']:
+                                PV += 1
+                            elif not paired_data['pred'] and not gathered_data[i]['pred']:
+                                PB += 1
+                            elif not paired_data['match'] and not gathered_data[i]['match']:
+                                PR += 1
+                            
+                
 
-    if accelerator.is_main_process:
-        print(f'ProcessBench. Average F1: {np.mean(all_f1_scores):.1f}')
+    if accelerator.is_main_process and config == 'primevul_test_paired':
+        sum_=PC+PV+PB+PR
+        print(f'{config} PC: {PC/sum_}, PV: {PV/sum_}, PB: {PB/sum_}, PR: {PR/sum_}')
 
     if accelerator.distributed_type == "MULTI_GPU":
         import torch.distributed as dist
