@@ -83,6 +83,7 @@ def clear_cache():
 
 
 def main(args):
+    print('args', args)
     bs = args.batch_size
     num_of_workers = args.num_of_workers
     separator = args.separator
@@ -93,8 +94,9 @@ def main(args):
     model_name = model_path.split('/')[-1]
 
     configs = {
-        # 'bigvul': "/project/flame/wyu3/PRM/bigvul_processed_dataset", 
+        'bigvul': "/project/flame/wyu3/PRM/bigvul_processed_dataset", 
         'bigvul_one_zero': "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero", 
+        'bigvul_dedup': "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test",
         
     }
     save_dir = f'outputs/{model_name}'
@@ -181,31 +183,30 @@ def main(args):
             else:
                 raise ValueError(f'Invalid criterion: {criterion}')
         res_data.extend(new_batch)
-        print('length of res_data', len(res_data))
         clear_cache()
-        
-        accelerator.wait_for_everyone()
-        gathered_data = gather_objects(res_data, accelerator)
+    
+    accelerator.wait_for_everyone()
+    gathered_data = gather_objects(res_data, accelerator)
 
-        if accelerator.is_main_process:
-            data1 = [e for e in gathered_data if 0 in e['labels']]  # vulnerable
-            print('length of vulnerable', len(data1))
-            data2 = [e for e in gathered_data if 0 not in e['labels']]  # non-vulnerable
-            print('length of non-vulnerable', len(data2))
-            
-            acc1 = np.mean([e['match'] for e in data1]) * 100
-            acc2 = np.mean([e['match'] for e in data2]) * 100
-            c1 = 2 * acc1 * acc2 / (acc1 + acc2)
-            print(f'{dataset_name} error acc: {acc1:.1f}, correct acc: {acc2:.1f}, c1: {c1:.1f}')
-            
-            TP = np.sum([e['match'] for e in data1])
-            FP = np.sum([not e['match'] for e in data1])
-            FN = np.sum([not e['match'] for e in data2])
-            
-            precision = TP / (TP + FP)
-            recall = TP / (TP + FN) 
-            f1_ = 2 * precision * recall / (precision + recall)
-            print(f'{dataset_name} precision: {precision:.1f}, recall: {recall:.1f}, f1: {f1_:.1f}')
+    if accelerator.is_main_process:
+        data1 = [e for e in gathered_data if 0 in e['labels']]  # vulnerable
+        print('length of vulnerable', len(data1))
+        data2 = [e for e in gathered_data if 0 not in e['labels']]  # non-vulnerable
+        print('length of non-vulnerable', len(data2))
+        
+        acc1 = np.mean([e['match'] for e in data1]) * 100
+        acc2 = np.mean([e['match'] for e in data2]) * 100
+        c1 = 2 * acc1 * acc2 / (acc1 + acc2)
+        print(f'{dataset_name} error acc: {acc1}, correct acc: {acc2}, c1: {c1}')
+        
+        TP = np.sum([e['match'] for e in data1])
+        FP = np.sum([not e['match'] for e in data1])
+        FN = np.sum([not e['match'] for e in data2])
+        
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN) 
+        f1 = 2 * precision * recall / (precision + recall)
+        print(f'{dataset_name} precision: {precision}, recall: {recall}, f1: {f1}')
             
 
 
@@ -223,7 +224,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
     parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps", "precise"], type=str, default="softmax")
-    parser.add_argument("-d", "--dataset_name", choices=["bigvul", "bigvul_one_zero"], type=str, default="bigvul")
+    parser.add_argument("-d", "--dataset_name", choices=["bigvul", "bigvul_one_zero", "bigvul_dedup"], type=str, default="bigvul")
     args = parser.parse_args()
 
     set_seed(42)
