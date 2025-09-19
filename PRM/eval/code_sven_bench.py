@@ -198,13 +198,19 @@ def main(args):
             
             acc1 = np.mean([e['match'] for e in data1]) * 100
             acc2 = np.mean([e['match'] for e in data2]) * 100
-            f1 = 2 * acc1 * acc2 / (acc1 + acc2)
-            print(f'{config} error acc: {acc1:.1f}, correct acc: {acc2:.1f}, f1: {f1:.1f}')
+            c1 = 2 * acc1 * acc2 / (acc1 + acc2)
+            print(f'{config} error acc: {acc1}, correct acc: {acc2}, c1: {c1}')
 
-            all_f1_scores.append(f1)
+            TP = np.sum([e['match'] for e in data1])
+            FP = np.sum([not e['match'] for e in data1])
+            FN = np.sum([not e['match'] for e in data2])
+            
+            precision = TP / (TP + FP)
+            recall = TP / (TP + FN) 
+            f1 = 2 * precision * recall / (precision + recall)
+            print(f'{config} precision: {precision}, recall: {recall}, f1: {f1}')
 
-    if accelerator.is_main_process:
-        print(f'ProcessBench. Average F1: {np.mean(all_f1_scores):.1f}')
+
 
     if accelerator.distributed_type == "MULTI_GPU":
         import torch.distributed as dist

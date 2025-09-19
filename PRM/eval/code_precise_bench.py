@@ -208,8 +208,7 @@ def main(args):
             
 
 
-    if accelerator.is_main_process:
-        print(f'ProcessBench. Average F1: {np.mean(all_f1_scores)}')
+    
 
     if accelerator.distributed_type == "MULTI_GPU":
         import torch.distributed as dist
