@@ -1,4 +1,4 @@
-from datasets import load_from_disk
+from datasets import load_from_disk, load_dataset
 from vllm import LLM, SamplingParams
 import numpy as np
 from tqdm import tqdm
