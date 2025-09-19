@@ -197,7 +197,8 @@ def main(args):
         acc1 = np.mean([e['match'] for e in data1]) * 100
         acc2 = np.mean([e['match'] for e in data2]) * 100
         c1 = 2 * acc1 * acc2 / (acc1 + acc2)
-        print(f'{dataset_name} error acc: {acc1}, correct acc: {acc2}, c1: {c1}')
+        ave_acc = np.mean([e['match'] for e in gathered_data]) * 100
+        print(f'{dataset_name} error acc: {acc1}, correct acc: {acc2}, c1: {c1}, ave_acc: {ave_acc}')
         
         TP = np.sum([e['match'] for e in data1])
         FP = np.sum([not e['match'] for e in data1])
