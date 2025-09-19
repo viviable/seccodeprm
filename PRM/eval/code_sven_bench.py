@@ -108,9 +108,7 @@ def main(args):
     model_name = model_path.split('/')[-1]
 
     configs = {
-        # 'bigvul_test': 34076, 
-        # 'sven_train': 1420,
-        'sven_val': 1420,
+        dataset_name: 1420,
     }
     all_f1_scores = []
 

@@ -92,8 +92,6 @@ def main(args):
     model_name = model_path.split('/')[-1]
 
     configs = {
-        'bigvul': 34076, 
-        'sven_train': 1000,
         'primevul_test': 806,
     }
     all_f1_scores = []
@@ -110,7 +108,7 @@ def main(args):
     for config, num in configs.items():
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
-        dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["validation"]
+        dataset = load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["test"]
         
         print('total number of vulnerable', sum([0 in dataset[i]['labels'] for i in range(len(dataset))]))
         # train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["train"]
@@ -198,7 +196,15 @@ def main(args):
             f1 = 2 * acc1 * acc2 / (acc1 + acc2)
             print(f'{config} error acc: {acc1:.1f}, correct acc: {acc2:.1f}, f1: {f1:.1f}')
 
-            all_f1_scores.append(f1)
+            TP = np.sum([e['match'] for e in data1])
+            FP = np.sum([not e['match'] for e in data1])
+            FN = np.sum([not e['match'] for e in data2])
+            
+            precision = TP / (TP + FP)
+            recall = TP / (TP + FN) 
+            f1_ = 2 * precision * recall / (precision + recall)
+            print(f'{config} precision: {precision:.1f}, recall: {recall:.1f}, f1: {f1_:.1f}')
+            all_f1_scores.append(f1_)
 
     if accelerator.is_main_process:
         print(f'ProcessBench. Average F1: {np.mean(all_f1_scores):.1f}')
