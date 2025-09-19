@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven_30epoch/checkpoint-360 \
     --train_data_path "/project/flame/wyu3/PRM/sven_processed_dataset" \
     --fix_llm False \
-    --num_train_epochs 1 \
+    --num_train_epochs 10 \
     --learning_rate 1e-6 \
-    --run_name sven_s2_last \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/sven_s2_last \
+    --run_name sven_s2_last_10epoch \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/sven_s2_last_10epoch \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \

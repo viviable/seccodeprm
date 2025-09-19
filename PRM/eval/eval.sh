@@ -4,5 +4,5 @@
 # nohup torchrun --nproc_per_node=4 code_binary_process_bench.py -m /project/flame/wyu3/PRM/output/stage1/test_coder_replicate_4/checkpoint-1000 -b 1  > coder_rep_4.log 2>&1 &
 
 
-# nohup torchrun --nproc_per_node=1 --master_port 46004 code_bigvul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven -b 1 -w 1 > sven_s1_last_test.log 2>&1 &
-nohup torchrun --nproc_per_node=1 --master_port 46004 code_sven_bench.py -m  /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven -d sven_val > sven_s1_last_test_sven_val.log 2>&1 &
+nohup torchrun --nproc_per_node=4 --master_port 46004 code_bigvul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/test_coder_rep_4 -b 1 -w 1 > bigvul_rep_4_validation.log 2>&1 &
+# nohup torchrun --nproc_per_node=4 --master_port 46003 code_sven_bench.py -m  /project/flame/wyu3/PRM/output/stage2/sven_s2_last_10epoch -d sven_val -t 0.3 > sven_s2_10epoch_test_t0.3.log 2>&1 &
