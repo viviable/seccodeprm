@@ -198,9 +198,10 @@ def main(args):
             print(f'{config} error acc: {acc1}, correct acc: {acc2}, c1: {c1}')
 
             TP = np.sum([e['match'] for e in data1])
-            FP = np.sum([not e['match'] for e in data1])
-            FN = np.sum([not e['match'] for e in data2])
-            
+            FP = np.sum([not e['match'] for e in data2])
+            FN = np.sum([not e['match'] for e in data1])
+            TN = np.sum([e['match'] for e in data2])
+            print('TP', TP, 'FP', FP, 'FN', FN, 'TN', TN)
             precision = TP / (TP + FP)
             recall = TP / (TP + FN) 
             f1 = 2 * precision * recall / (precision + recall)

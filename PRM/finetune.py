@@ -67,7 +67,7 @@ def make_supervised_data_module(data_args) -> Dict:
         eval_dataset = load_dataset(data_args.train_data_path, split="test")
 
     return dict(
-        train_dataset=train_dataset, 
+        train_dataset=balanced_dataset, 
         eval_dataset=eval_dataset, 
     )
 
