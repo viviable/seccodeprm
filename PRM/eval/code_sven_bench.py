@@ -98,6 +98,7 @@ def load_data(dataset_name):
     return dataset
 
 def main(args):
+    print('args', args)
     bs = args.batch_size
     num_of_workers = args.num_of_workers
     separator = args.separator

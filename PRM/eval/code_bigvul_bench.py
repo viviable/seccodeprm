@@ -96,7 +96,7 @@ def main(args):
     configs = {
         'bigvul': "/project/flame/wyu3/PRM/bigvul_processed_dataset", 
         'bigvul_one_zero': "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero", 
-        'bigvul_dedup': "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test",
+        'bigvul_dedup': "/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup",
         
     }
     save_dir = f'outputs/{model_name}'
@@ -105,12 +105,15 @@ def main(args):
     accelerator = Accelerator()
     print(f'Loading model from {model_path}')
     model = transformers.AutoModelForTokenClassification.from_pretrained(model_path)
+    model = model.half()
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
     model = accelerator.prepare(model)
     model.eval()
     dataset_path = configs[dataset_name]
-    
-    dataset = load_from_disk(dataset_path)["test"]
+    if dataset_name == 'bigvul_dedup':
+        dataset = load_from_disk(dataset_path)
+    else:
+        dataset = load_from_disk(dataset_path)["test"]
     # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
     # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["validation"]
     
@@ -142,6 +145,10 @@ def main(args):
 
         batch = collate_fn(batch_, tokenizer, separator)
         input_ids = batch['input_ids'].to(accelerator.device)
+        print('input_ids', input_ids.shape)
+        # if input_ids.shape[-1] > 4000:
+        #     print('skip this sample, too long')
+        #     continue
         input_ids = input_ids.to(torch.long)
         label = batch['label']
         labels = batch['labels']
@@ -163,7 +170,6 @@ def main(args):
                     new_batch[i]['match'] = True
                 else:
                     new_batch[i]['match'] = False
-                print(pred_or)
             elif criterion == 'simple':
                 if (label_ != -1 and score[-1] <= 0) or (label_ == -1 and score[-1] > 0):
                     new_batch[i]['match'] = True
@@ -173,7 +179,6 @@ def main(args):
                 acc_allsteps_per_sample = [(labels[i][j]==1) == (score.cpu()>0)[j] for j in range(len(score))]
                 new_batch[i]['match'] = np.array(acc_allsteps_per_sample).mean()
                 # print('acc_allsteps_per_sample', acc_allsteps_per_sample)
-                print('new_batch[i]["match"]', new_batch[i]['match'])
             elif criterion == 'precise':
                 first_zero = find_first_zero(score)
                 if first_zero == label_:
@@ -201,8 +206,10 @@ def main(args):
         print(f'{dataset_name} error acc: {acc1}, correct acc: {acc2}, c1: {c1}, ave_acc: {ave_acc}')
         
         TP = np.sum([e['match'] for e in data1])
-        FP = np.sum([not e['match'] for e in data1])
-        FN = np.sum([not e['match'] for e in data2])
+        FN = np.sum([not e['match'] for e in data1])
+        TN = np.sum([e['match'] for e in data2])  
+        FP = np.sum([not e['match'] for e in data2])
+        print('TP', TP, 'FN', FN, 'TN', TN, 'FP', FP)
         
         precision = TP / (TP + FP)
         recall = TP / (TP + FN) 

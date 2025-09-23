@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path Qwen/Qwen2.5-Coder-7B-Instruct  \
-    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_primevul_1epoch_unpaired_last_step_only  \
+    --train_data_path "/project/flame/wyu3/PRM/primevul_processed_dataset" \
     --fix_llm True \
     --num_train_epochs 10 \
     --learning_rate 1e-4 \
-    --run_name coder_s1_bigvul_10epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_bigvul_10epoch \
+    --run_name coder_s1_primevul_froms0_lastonly_10epoch_paired \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_primevul_froms0_lastonly_10epoch_paired \
     --bf16 True \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \
@@ -35,5 +35,5 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --report_to "wandb" \
     --gradient_checkpointing True \
     --deepspeed ds_config_zero2.json \
-    --ddp_timeout 3600 
-    # --train_on_last_step_only True 
+    --ddp_timeout 3600 \
+    --train_on_last_step_only True 

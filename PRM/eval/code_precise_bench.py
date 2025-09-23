@@ -227,4 +227,5 @@ if __name__ == '__main__':
 
     set_seed(42)
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    print('args', args)
     main(args)

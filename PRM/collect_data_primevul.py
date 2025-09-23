@@ -123,9 +123,11 @@ def one_zero_dataset(path):
         new_dataset[split_name] = Dataset.from_list(new_dataset[split_name])
     new_dataset.save_to_disk(path)
 
-def load_data(split_name):
-    json_path = f'/project/flame/wyu3/PRM/PrimeVul_v0.1/primevul_{split_name}_paired.jsonl'  ## 8487 examples
-    # json_path = f'/project/flame/wyu3/PRM/PrimeVul_v0.1/primevul_{split_name}.jsonl'  ## 8487 examples
+def load_data(split_name, paired=False):
+    if paired:
+        json_path = f'/project/flame/wyu3/PRM/PrimeVul_v0.1/primevul_{split_name}_paired.jsonl'  ## 8487 examples
+    else:
+        json_path = f'/project/flame/wyu3/PRM/PrimeVul_v0.1/primevul_{split_name}.jsonl'  ## 8487 examples
     
     data = []
     
@@ -145,7 +147,7 @@ def preprocess_data(data):
             item['file_hash'] = str(item['file_hash'])
     return data
 
-def main(path):
+def main_paired(path):
     ## 
     # Create DatasetDict once to hold all splits
     vul_dataset = DatasetDict()
@@ -153,7 +155,7 @@ def main(path):
     # Process each split
     splits = ['test', 'train', 'valid']
     for split_name in splits:
-        dataset = load_data(split_name)
+        dataset = load_data(split_name, paired=True)
         split_data = []
         
         for index, data in enumerate(tqdm(dataset, desc=f"Processing {split_name}")):
@@ -207,7 +209,8 @@ def main(path):
             source = 'PrimeVul'
             other_info_vul = { k: vul_data[k] for k in vul_data.keys() if k not in ['target'] }
             other_info_safe = { k: safe_data[k] for k in safe_data.keys() if k not in ['target'] }
-            
+            # other_info_vul['pair_id'] = index
+            # other_info_safe['pair_id'] = index
             # Add both versions
             split_data.append({
                 'prompt': prompt.format(function_name=data['project']),
@@ -236,9 +239,57 @@ def main(path):
     vul_dataset.save_to_disk(path)
     
     
+def main_unpaired(path):
+    ## 
+    # Create DatasetDict once to hold all splits
+    vul_dataset = DatasetDict()
+    
+    # Process each split
+    splits = ['test', 'train', 'valid']
+    for split_name in splits:
+        dataset = load_data(split_name, paired=False)
+        split_data = []
+        
+        for index, data in enumerate(tqdm(dataset, desc=f"Processing {split_name}")):
+            # if data['file_name'].endswith('.py'):
+            #     continue
+            
+            
+            
+            prompt = 'Determine whether the {function_name} code is vulnerable or not.'
+            
+            source = 'PrimeVul_unpaired'
+            completion = data['func'].split('\n\n')
+            if data['target'] == 0:
+                labels = [1] * len(completion)
+            else:
+                labels = [0] * len(completion)
+                
+            other_info = { k: data[k] for k in data.keys() if k not in ['func', 'target'] }
+
+            split_data.append({
+                'prompt': prompt.format(function_name=data['project']),
+                'completions': completion,
+                'labels': labels,
+                'source': source,
+                'other_info': other_info,
+                'index': index
+            })
+            
+            
+        # Convert list to Dataset and add to DatasetDict
+        
+        
+        vul_dataset[split_name] = Dataset.from_list(split_data)
+        print(f"Completed {split_name} split: {len(split_data)} examples")
+    
+    # Save all splits together as one DatasetDict (most efficient for datasets library)
+    vul_dataset.save_to_disk(path)
 
 if __name__ == "__main__":
-    path = './primevul_processed_dataset'
-    main(path)
+    path = '/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired'
+    main_unpaired(path)
+    # path = './primevul_processed_dataset_paired'
+    # main_paired(path)
     # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
     # one_zero_dataset(path)

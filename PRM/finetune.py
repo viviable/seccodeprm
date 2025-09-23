@@ -109,6 +109,7 @@ def train():
     data_module = make_supervised_data_module(data_args=data_args)
 
     # Start trainner
+    print('training_args', training_args)
     trainer = PRMTrainer(
         model=model, 
         processing_class=tokenizer, 

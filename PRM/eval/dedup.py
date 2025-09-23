@@ -54,13 +54,36 @@ def check_if_repeat_parallel(train_dataset, dataset, num_workers=None):
     print('new_dataset', len(new_dataset))
     return new_dataset
 
+
+def dedup_testset(test_dataset):
+    seen_completions = set()
+    new_test_dataset = []
+    for item in tqdm(test_dataset):
+        comp = ''.join(item['completions'])
+        if comp in seen_completions:
+            continue
+        else:
+            seen_completions.add(comp)
+            new_test_dataset.append(item)
+    return new_test_dataset
+
+
 if __name__ == "__main__":
-    test_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
-    val_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["validation"]
+    
+    ## dedup testset from trainset
+    # test_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
+    # val_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["validation"]
     # hf_data = load_dataset('bstee615/bigvul')
     # hf_data_test = hf_data["test"]
-    train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["train"]
+    # train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["train"]
+    # new_dataset = check_if_repeat_parallel(train_dataset, test_dataset)
     
-    new_dataset = check_if_repeat_parallel(train_dataset, test_dataset)
+    ## dedup testset from testset
+    test_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test")
+    new_dataset = dedup_testset(test_dataset)
+    
+    #save to disk
     new_dataset_ = Dataset.from_list(new_dataset)
-    new_dataset_.save_to_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test")
+    new_dataset_.save_to_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup")
+    
+    # print(sum([1 if 0 in item['labels'] else 0 for item in new_dataset]))

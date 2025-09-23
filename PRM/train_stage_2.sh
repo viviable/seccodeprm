@@ -2,7 +2,7 @@ GPUS_PER_NODE=4
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
-MASTER_PORT=46003
+MASTER_PORT=46009
 
 DISTRIBUTED_ARGS="
     --nproc_per_node $GPUS_PER_NODE \
@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven_30epoch/checkpoint-360 \
-    --train_data_path "/project/flame/wyu3/PRM/sven_processed_dataset" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_primevul_10epoch \
+    --train_data_path "/project/flame/wyu3/PRM/primevul_processed_dataset" \
     --fix_llm False \
-    --num_train_epochs 10 \
+    --num_train_epochs 3 \
     --learning_rate 1e-6 \
-    --run_name sven_s2_last_10epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/sven_s2_last_10epoch \
+    --run_name primevul_s2_3epoch \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/primevul_s2_3epoch \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \
