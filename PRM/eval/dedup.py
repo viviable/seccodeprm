@@ -79,11 +79,11 @@ if __name__ == "__main__":
     # new_dataset = check_if_repeat_parallel(train_dataset, test_dataset)
     
     ## dedup testset from testset
-    test_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test")
+    test_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
     new_dataset = dedup_testset(test_dataset)
     
     #save to disk
     new_dataset_ = Dataset.from_list(new_dataset)
-    new_dataset_.save_to_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup")
+    new_dataset_.save_to_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test_dedup")
     
     # print(sum([1 if 0 in item['labels'] else 0 for item in new_dataset]))

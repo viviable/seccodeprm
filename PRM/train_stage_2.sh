@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_primevul_10epoch \
-    --train_data_path "/project/flame/wyu3/PRM/primevul_processed_dataset" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_bigvul_3epoch \
+    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset" \
     --fix_llm False \
     --num_train_epochs 3 \
     --learning_rate 1e-6 \
-    --run_name primevul_s2_3epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/primevul_s2_3epoch \
+    --run_name primevul_s2_3epoch_s0all \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/primevul_s2_3epoch_s0all \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \

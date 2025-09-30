@@ -158,6 +158,8 @@ def main_paired(path):
         dataset = load_data(split_name, paired=True)
         split_data = []
         
+        
+        
         for index, data in enumerate(tqdm(dataset, desc=f"Processing {split_name}")):
             # if data['file_name'].endswith('.py'):
             #     continue
@@ -244,6 +246,9 @@ def main_unpaired(path):
     # Create DatasetDict once to hold all splits
     vul_dataset = DatasetDict()
     
+    info_path = '/project/flame/wyu3/PRM/PrimeVul_v0.1/file_info.json'
+    with open(info_path, 'r') as f:
+        info = json.load(f)
     # Process each split
     splits = ['test', 'train', 'valid']
     for split_name in splits:
@@ -263,6 +268,12 @@ def main_unpaired(path):
             if data['target'] == 0:
                 labels = [1] * len(completion)
             else:
+                import pdb; pdb.set_trace()
+                if data['func_hash'] in info:
+                    data_vul_info = info[data['func_hash']]
+                    data['func_hash']
+                    da = dataset.filter(lambda x: x['func_hash'] !='292096308156704952246887123009503225331' and x['commit_id'] =='dc070da861a015d3c97488fdcca6063b44d47a7b')
+                    da['idx']
                 labels = [0] * len(completion)
                 
             other_info = { k: data[k] for k in data.keys() if k not in ['func', 'target'] }

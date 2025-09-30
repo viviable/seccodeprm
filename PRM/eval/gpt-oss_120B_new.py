@@ -3,6 +3,12 @@ from vllm import LLM, SamplingParams
 import numpy as np
 from tqdm import tqdm
 from transformers import AutoTokenizer
+import argparse
+
+hf_dataset = {
+    "bigvul_dedup_test": load_dataset('vivi-yu/bigvul_dedup_test')['train'],
+    "bigvul_one_zero_dedup_test": load_dataset('vivi-yu/bigvul_one_zero_dedup_test')['train'],
+}
 
 def extract_label(output):
     output = output.split("assistantfinal:")[-1].lower()
@@ -12,6 +18,12 @@ def extract_label(output):
         return 1
     else:
         return -1
+
+def arg_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--criteria", type=str, default="steps-level", choices=["steps-level", "sample-level"])
+    parser.add_argument("--dataset", type=str, default="bigvul_dedup_test", choices=["bigvul_dedup_test", "bigvul_one_zero_dedup_test"])
+    return parser.parse_args()
 
 def main():
     # dataset = load_from_disk('/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test')
@@ -29,10 +41,19 @@ def main():
     messages = []
     texts = []
     for data in dataset:
-        for i in range(len(data["completions"])):
+        if criteria == "steps-level":
+            for i in range(len(data["completions"])):
+                prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
+                prompts.append(prompt)
+                labels.append(data["labels"][i])
+        elif criteria == "sample-level":
             prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
             prompts.append(prompt)
-            labels.append(data["labels"][i])
+            if 0 in data["labels"]:
+                labels.append(0)
+            else:
+                labels.append(1)
+            
 
     messages = [
         [{"role": "user", "content": prompt}]

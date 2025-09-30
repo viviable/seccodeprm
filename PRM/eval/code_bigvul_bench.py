@@ -97,6 +97,7 @@ def main(args):
         'bigvul': "/project/flame/wyu3/PRM/bigvul_processed_dataset", 
         'bigvul_one_zero': "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero", 
         'bigvul_dedup': "/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup",
+        'bigvul_one_zero_dedup': "/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test_dedup", 
         
     }
     save_dir = f'outputs/{model_name}'
@@ -110,7 +111,7 @@ def main(args):
     model = accelerator.prepare(model)
     model.eval()
     dataset_path = configs[dataset_name]
-    if dataset_name == 'bigvul_dedup':
+    if dataset_name == 'bigvul_dedup' or dataset_name == 'bigvul_one_zero_dedup':
         dataset = load_from_disk(dataset_path)
     else:
         dataset = load_from_disk(dataset_path)["test"]
@@ -232,7 +233,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
     parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps", "precise"], type=str, default="softmax")
-    parser.add_argument("-d", "--dataset_name", choices=["bigvul", "bigvul_one_zero", "bigvul_dedup"], type=str, default="bigvul")
+    parser.add_argument("-d", "--dataset_name", choices=["bigvul", "bigvul_one_zero", "bigvul_dedup", "bigvul_one_zero_dedup"], type=str, default="bigvul")
     args = parser.parse_args()
 
     set_seed(42)
