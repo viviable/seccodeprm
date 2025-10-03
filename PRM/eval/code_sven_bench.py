@@ -90,7 +90,7 @@ def load_data(dataset_name):
     elif dataset_name == 'sven_val':
         dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")['test']
     elif dataset_name == 'sven_val_no_py':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['test']
+        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['val']
     elif dataset_name == 'bigvul_test':
         dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
     else:

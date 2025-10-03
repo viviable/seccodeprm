@@ -6,7 +6,7 @@ import transformers
 from datasets import load_dataset, load_from_disk, concatenate_datasets
 from torch import distributed as dist
 from trl import PRMConfig, PRMTrainer
-
+import torch
 
 @dataclass
 class ModelArguments:
@@ -45,7 +45,7 @@ def make_supervised_data_module(data_args) -> Dict:
     if 'bigvul' in data_args.train_data_path or 'precise' in data_args.train_data_path or 'sven' in data_args.train_data_path or 'primevul' in data_args.train_data_path:
         train_dataset = load_from_disk(data_args.train_data_path)['train']
         eval_dataset = load_from_disk(data_args.train_data_path)['test']
-        resample = True
+        resample = False
         if resample:
             # Step 1: Filter data with label 0
             minority_data = train_dataset.filter(lambda x: 0 in x['labels'])
@@ -72,6 +72,7 @@ def make_supervised_data_module(data_args) -> Dict:
     )
 
 
+
 def train():
     os.environ["WANDB_PROJECT"]="PRM_Math_Shepherd"
     
@@ -92,7 +93,11 @@ def train():
         cache_dir=training_args.cache_dir,
         trust_remote_code=True,
         use_cache = False,
+        torch_dtype=torch.bfloat16,  # 🔥 关键！直接用bf16加载
+        low_cpu_mem_usage=True,       # 🔥 降低加载时内存峰值
+        device_map=None,              # DeepSpeed会自己处理设备分配
     )
+    
 
     # freeze llm except last layer if needed
     if training_args.fix_llm:
@@ -119,6 +124,8 @@ def train():
 
     trainer.train()
     trainer.save_state()
+    
+    model.push_to_hub(training_args.output_dir)
 
     safe_save_model_for_hf_trainer(
         trainer=trainer, 

@@ -106,7 +106,7 @@ def main(args):
     accelerator = Accelerator()
     print(f'Loading model from {model_path}')
     model = transformers.AutoModelForTokenClassification.from_pretrained(model_path)
-    model = model.half()
+    # model = model.half()
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
     model = accelerator.prepare(model)
     model.eval()
@@ -115,12 +115,8 @@ def main(args):
         dataset = load_from_disk(dataset_path)
     else:
         dataset = load_from_disk(dataset_path)["test"]
-    # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
-    # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["validation"]
     
     print('total number of vulnerable', sum([0 in dataset[i]['labels'] for i in range(len(dataset))]))
-    # train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["train"]
-    # dataset = dataset.select(range(500))
     
     
     sampler = None
@@ -146,10 +142,9 @@ def main(args):
 
         batch = collate_fn(batch_, tokenizer, separator)
         input_ids = batch['input_ids'].to(accelerator.device)
-        print('input_ids', input_ids.shape)
-        # if input_ids.shape[-1] > 4000:
-        #     print('skip this sample, too long')
-        #     continue
+        if input_ids.shape[-1] > 4000:
+            print('skip this sample, too long')
+            continue
         input_ids = input_ids.to(torch.long)
         label = batch['label']
         labels = batch['labels']
@@ -167,6 +162,7 @@ def main(args):
             score = prob[:, 1] - prob[:, 0]  # (steps,)
             if criterion == 'softmax':
                 pred_or = ((-score / temperature).softmax(dim=-1) * score).sum()
+                print('sample', i, 'pred_or', pred_or)
                 if (label_ != -1 and pred_or <= 0) or (label_ == -1 and pred_or > 0):
                     new_batch[i]['match'] = True
                 else:
@@ -179,7 +175,6 @@ def main(args):
             elif criterion == 'allsteps':
                 acc_allsteps_per_sample = [(labels[i][j]==1) == (score.cpu()>0)[j] for j in range(len(score))]
                 new_batch[i]['match'] = np.array(acc_allsteps_per_sample).mean()
-                # print('acc_allsteps_per_sample', acc_allsteps_per_sample)
             elif criterion == 'precise':
                 first_zero = find_first_zero(score)
                 if first_zero == label_:
@@ -217,9 +212,6 @@ def main(args):
         f1 = 2 * precision * recall / (precision + recall)
         print(f'{dataset_name} precision: {precision}, recall: {recall}, f1: {f1}')
             
-
-
-
     if accelerator.distributed_type == "MULTI_GPU":
         import torch.distributed as dist
         dist.destroy_process_group()
