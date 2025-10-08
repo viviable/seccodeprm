@@ -1,0 +1,38 @@
+INFO 10-03 18:05:58 [__init__.py:241] Automatically detected platform cuda.
+INFO 10-03 18:06:00 [utils.py:326] non-default args: {'model': 'Qwen/Qwen2.5-Coder-32B-Instruct', 'max_model_len': 32768, 'disable_log_stats': True}
+INFO 10-03 18:06:06 [__init__.py:711] Resolved architecture: Qwen2ForCausalLM
+INFO 10-03 18:06:06 [__init__.py:1750] Using max model len 32768
+INFO 10-03 18:06:07 [scheduler.py:222] Chunked prefill is enabled with max_num_batched_tokens=16384.
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:06:08 [core.py:636] Waiting for init message from front-end.
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:06:08 [core.py:74] Initializing a V1 LLM engine (v0.10.1.1) with config: model='Qwen/Qwen2.5-Coder-32B-Instruct', speculative_config=None, tokenizer='Qwen/Qwen2.5-Coder-32B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config={}, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=32768, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto, device_config=cuda, decoding_config=DecodingConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_backend=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=Qwen/Qwen2.5-Coder-32B-Instruct, enable_prefix_caching=True, chunked_prefill_enabled=True, use_async_output_proc=True, pooler_config=None, compilation_config={"level":3,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":["vllm.unified_attention","vllm.unified_attention_with_output","vllm.mamba_mixer2"],"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":1,"use_cudagraph":true,"cudagraph_num_of_warmups":1,"cudagraph_capture_sizes":[512,504,496,488,480,472,464,456,448,440,432,424,416,408,400,392,384,376,368,360,352,344,336,328,320,312,304,296,288,280,272,264,256,248,240,232,224,216,208,200,192,184,176,168,160,152,144,136,128,120,112,104,96,88,80,72,64,56,48,40,32,24,16,8,4,2,1],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"pass_config":{},"max_capture_size":512,"local_cache_dir":null}
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:06:12 [parallel_state.py:1134] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+[1;36m(EngineCore_0 pid=1187363)[0;0m WARNING 10-03 18:06:12 [topk_topp_sampler.py:61] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:06:12 [gpu_model_runner.py:1953] Starting to load model Qwen/Qwen2.5-Coder-32B-Instruct...
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:06:13 [gpu_model_runner.py:1985] Loading model from scratch...
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:06:13 [cuda.py:328] Using Flash Attention backend on V1 engine.
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:06:13 [weight_utils.py:296] Using model weights format ['*.safetensors']
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:13:45 [default_loader.py:262] Loading weights took 451.68 seconds
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:13:46 [gpu_model_runner.py:2007] Model loading took 61.0375 GiB and 452.611295 seconds
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:13:58 [backends.py:548] Using cache directory: /home/wyu3/.cache/vllm/torch_compile_cache/44c24b2ad3/rank_0_0/backbone for vLLM's torch.compile
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:13:58 [backends.py:559] Dynamo bytecode transform time: 11.82 s
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:14:00 [backends.py:194] Cache the graph for dynamic shape for later use
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:14:38 [backends.py:215] Compiling a graph for dynamic shape takes 40.01 s
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:14:57 [monitor.py:34] torch.compile takes 51.83 s in total
+[1;36m(EngineCore_0 pid=1187363)[0;0m INFO 10-03 18:14:58 [gpu_worker.py:276] Available KV cache memory: 4.44 GiB
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700] EngineCore failed to start.
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700] Traceback (most recent call last):
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]   File "/home/wyu3/anaconda3/envs/sr/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 691, in run_engine_core
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]     engine_core = EngineCoreProc(*args, **kwargs)
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]   File "/home/wyu3/anaconda3/envs/sr/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 492, in __init__
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]     super().__init__(vllm_config, executor_class, log_stats,
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]   File "/home/wyu3/anaconda3/envs/sr/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 89, in __init__
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]     self._initialize_kv_caches(vllm_config)
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]   File "/home/wyu3/anaconda3/envs/sr/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 188, in _initialize_kv_caches
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]     kv_cache_configs = [
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]   File "/home/wyu3/anaconda3/envs/sr/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 189, in <listcomp>
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]     get_kv_cache_config(vllm_config, kv_cache_spec_one_worker,
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]   File "/home/wyu3/anaconda3/envs/sr/lib/python3.10/site-packages/vllm/v1/core/kv_cache_utils.py", line 1095, in get_kv_cache_config
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]     check_enough_kv_cache_memory(vllm_config, kv_cache_spec, available_memory)
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]   File "/home/wyu3/anaconda3/envs/sr/lib/python3.10/site-packages/vllm/v1/core/kv_cache_utils.py", line 699, in check_enough_kv_cache_memory
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700]     raise ValueError(
+[1;36m(EngineCore_0 pid=1187363)[0;0m ERROR 10-03 18:14:58 [core.py:700] ValueError: To serve at least one request with the models's max seq len (32768), (8.00 GiB KV cache is needed, which is larger than the available KV cache memory (4.44 GiB). Based on the available memory, the estimated maximum model length is 18192. Try increasing `gpu_memory_utilization` or decreasing `max_model_len` when initializing the engine.

@@ -12,9 +12,11 @@ def extract_label(output):
         return -1
 
 def main():
-    dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
+    # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
+    dataset = load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired")["test"]
+    
     # dataset = dataset.select(range(10))
-    model_path = "Qwen/Qwen2.5-Coder-7B-Instruct"
+    model_path = "Qwen/Qwen2.5-Coder-32B-Instruct"
     llm = LLM(
         model=model_path,
         tensor_parallel_size=1,
@@ -33,11 +35,13 @@ def main():
             labels.append(data["labels"][i])
             
     print(f"Total prompts: {len(prompts)}")
-    acc_safe = 0
-    acc_vul = 0
     invalid = 0
     batch_size = 64
     results = []
+    TP = 0
+    FP = 0
+    TN = 0
+    FN = 0
     
     for i in tqdm(range(0, len(prompts), batch_size)):
         max_len = min(i+batch_size, len(prompts))
@@ -50,9 +54,13 @@ def main():
                 safe = extract_label(output_text)
                 results.append(output_text)
                 if safe == 1 and labels_batch[j] == 1:
-                    acc_safe += 1
+                    TN += 1
                 elif safe == 0 and labels_batch[j] == 0:
-                    acc_vul += 1
+                    TP += 1
+                elif safe == 0 and labels_batch[j] == 1:
+                    FN += 1
+                elif safe == 1 and labels_batch[j] == 0:
+                    FP += 1
                 elif safe == -1:
                     invalid += 1
         except Exception as e:
@@ -61,14 +69,15 @@ def main():
         
         
                 
-    acc = (acc_safe + acc_vul) / len(results)
-    print(f"Accuracy: {acc}")
+    print(f"TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}")
+    print(f"Precision: {TP / (TP + FP)}")
+    print(f"Recall: {TP / (TP + FN)}")
+    print(f"Accuracy: {(TP + TN) / (TP + TN + FP + FN)}")
+    print(f"F1-score: {2 * TP / (2 * TP + FP + FN)}")
     print(f"Total number of results: {len(results)}")
-    print(f"Accuracy of safe: {acc_safe / (np.array(labels)==1).sum()}")
-    print(f"Accuracy of vul: {acc_vul / (np.array(labels)==0).sum()}")
     print(f"Invalid: {invalid / len(results)}")
     
-    with open("baseline_llm_prompting_1k.txt", "w") as f:
+    with open("baseline_llm_prompting_prime_test.txt", "w") as f:
         for result in results:
             f.write(result + "\n")
     
