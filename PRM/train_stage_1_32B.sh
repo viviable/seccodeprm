@@ -14,7 +14,7 @@ DISTRIBUTED_ARGS="
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
     --model_name_or_path  Qwen/Qwen2.5-Coder-32B-Instruct \
-    --train_data_path "/project/flame/wyu3/PRM/bigvul_processed_dataset" \
+    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset" \
     --fix_llm True \
     --num_train_epochs 3 \
     --learning_rate 1e-4 \

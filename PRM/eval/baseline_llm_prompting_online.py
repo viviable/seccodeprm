@@ -1,27 +1,17 @@
-from datasets import load_from_disk
+from datasets import load_from_disk, load_dataset
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 import numpy as np
 from tqdm import tqdm
 
 datasets = {
-    "precisebugs_test": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["test"],
-    "reposvul_test": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")["test"],
-    "sven_test": load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")["test"],
-    "bigvul_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"],
-    "bigvul_dedup_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup"),
-    "primevul_test_paired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["test"],
-    "primevul_test_unpaired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired")["test"],
+    "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
+    "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
+    "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
+    "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
+    "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
+    "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
 }
-
-# datasets = {
-#     "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
-#     "reposvul_test": load_dataset("vivi-yu/vul_code_repos")["test"],
-#     "sven_test": load_dataset("vivi-yu/vul_code_sven")["test"],
-#     "bigvul_dedup_test": load_dataset("vivi-yu/vul_code_bigvul_dedup")["train"],
-#     "primevul_test_paired": load_dataset("vivi-yu/vul_code_primevul")["test"],
-#     "primevul_test_unpaired": load_dataset("vivi-yu/vul_code_primevul_unpaired")["test"],
-# }
 
 def extract_label(output):
     if "yes" in output.lower():
@@ -33,8 +23,8 @@ def extract_label(output):
 
 def main():
     
-    # model_path = "Qwen/Qwen2.5-Coder-32B-Instruct"
-    model_path = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    model_path = "Qwen/Qwen2.5-Coder-7B-Instruct"
+    # model_path = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
     
     if "32b" or "30b" in model_path.lower():
         tensor_parallel_size = 4

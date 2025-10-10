@@ -14,7 +14,7 @@ import argparse
 def load_n_prepare_dataset(ds_name):
     
     if ds_name == "sven":
-        data_dir = '/home/wyu3/workspace/sven/data_eval/trained'
+        data_dir = '/home/wyu3/workspace/sven/data_eval/trained'  # /project/flame/wyu3/PRM/bon/CWEval/evals/eval_qwen3_30b/generated_0/lang/c
         testset = {}
         vul_types = CWES_TRAINED
         

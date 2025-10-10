@@ -83,18 +83,8 @@ def clear_cache():
     gc.collect()
 
 def load_data(dataset_name):
-    if dataset_name == 'sven_train':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")['train']
-    elif dataset_name == 'sven_train_no_py':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['train']
-    elif dataset_name == 'sven_val':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")['test']
-    elif dataset_name == 'sven_val_no_py':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset_no_py")['val']
-    elif dataset_name == 'bigvul_test':
-        dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
-    else:
-        raise ValueError(f'Invalid dataset name: {dataset_name}')
+    dataset = load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")['test']
+    
     return dataset
 
 def main(args):
@@ -152,6 +142,9 @@ def main(args):
             batch = collate_fn(batch_, tokenizer, separator)
             input_ids = batch['input_ids'].to(accelerator.device)
             input_ids = input_ids.to(torch.long)
+            if input_ids.size(-1) > 30000:
+                print('input_ids.size(-1) > 30000', input_ids.size(-1))
+                continue
             label = batch['label']
             labels = batch['labels']
             score_ids = batch['score_ids']
@@ -159,8 +152,6 @@ def main(args):
                 outputs = model(input_ids)
                 logits = outputs.logits
             
-            # criterion = 'softmax'
-            # criterion = 'simple'
             criterion = args.criterion
             for i, score_id in enumerate(score_ids):
                 label_ = label[i]
@@ -245,7 +236,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", type=str)
-    parser.add_argument("-d", "--dataset_name", choices=["sven_train", "sven_train_no_py", "sven_val", "sven_val_no_py", "bigvul_test"], type=str, default="sven_train")
+    parser.add_argument("-d", "--dataset_name", choices=["reposvul_test"], type=str, default="reposvul_test")
     parser.add_argument("-b", "--batch_size", type=int, default=1)
     parser.add_argument("-w", "--num_of_workers", type=int, default=4)
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")

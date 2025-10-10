@@ -42,29 +42,29 @@ def safe_save_model_for_hf_trainer(
 def make_supervised_data_module(data_args) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     assert data_args.train_data_path is not None
-    if 'bigvul' in data_args.train_data_path or 'precise' in data_args.train_data_path or 'sven' in data_args.train_data_path or 'primevul' in data_args.train_data_path:
-        train_dataset = load_from_disk(data_args.train_data_path)['train']
-        eval_dataset = load_from_disk(data_args.train_data_path)['test']
-        resample = False
-        if resample:
-            # Step 1: Filter data with label 0
-            minority_data = train_dataset.filter(lambda x: 0 in x['labels'])
-            # Step 2: Replicate the minority data
-            replicate_ratio = 2
-            replicated_datasets = [minority_data] * replicate_ratio
-            # Step 3: Concatenate original dataset with replicated minority data
-            balanced_dataset = concatenate_datasets([train_dataset] + replicated_datasets)
-            balanced_dataset = balanced_dataset.shuffle(seed=42)
-        else:
-            balanced_dataset = train_dataset
-            
-        only_vul = False
-        if only_vul:
-            balanced_dataset = balanced_dataset.filter(lambda x: 0 in x['labels'])
-    
+    # if 'bigvul' in data_args.train_data_path or 'precise' in data_args.train_data_path or 'sven' in data_args.train_data_path or 'primevul' in data_args.train_data_path:
+    train_dataset = load_from_disk(data_args.train_data_path)['train']
+    eval_dataset = load_from_disk(data_args.train_data_path)['test']
+    resample = False
+    if resample:
+        # Step 1: Filter data with label 0
+        minority_data = train_dataset.filter(lambda x: 0 in x['labels'])
+        # Step 2: Replicate the minority data
+        replicate_ratio = 2
+        replicated_datasets = [minority_data] * replicate_ratio
+        # Step 3: Concatenate original dataset with replicated minority data
+        balanced_dataset = concatenate_datasets([train_dataset] + replicated_datasets)
+        balanced_dataset = balanced_dataset.shuffle(seed=42)
     else:
-        train_dataset = load_dataset(data_args.train_data_path, split="train")
-        eval_dataset = load_dataset(data_args.train_data_path, split="test")
+        balanced_dataset = train_dataset
+        
+    only_vul = False
+    if only_vul:
+        balanced_dataset = balanced_dataset.filter(lambda x: 0 in x['labels'])
+    
+    # else:
+    #     train_dataset = load_dataset(data_args.train_data_path, split="train")
+    #     eval_dataset = load_dataset(data_args.train_data_path, split="test")
 
     return dict(
         train_dataset=balanced_dataset, 
@@ -125,7 +125,7 @@ def train():
     trainer.train()
     trainer.save_state()
     
-    model.push_to_hub(training_args.output_dir)
+    # model.push_to_hub(training_args.output_dir)
 
     safe_save_model_for_hf_trainer(
         trainer=trainer, 

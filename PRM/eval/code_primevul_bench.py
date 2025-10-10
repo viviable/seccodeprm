@@ -177,6 +177,7 @@ def main(args):
             elif criterion == 'allsteps':
                 acc_allsteps_per_sample = [(labels[i][j]==1) == (score.cpu()>0)[j] for j in range(len(score))]
                 new_batch[i]['match'] = np.array(acc_allsteps_per_sample).mean()
+                new_batch[i]['predicted_label'] = (score.cpu()<=0).tolist()
                 # print('acc_allsteps_per_sample', acc_allsteps_per_sample)
                 print('new_batch[i]["match"]', new_batch[i]['match'])
             elif criterion == 'precise':
@@ -194,7 +195,7 @@ def main(args):
     accelerator.wait_for_everyone()
     gathered_data = gather_objects(res_data, accelerator)
 
-    if accelerator.is_main_process:
+    if accelerator.is_main_process and criterion != 'allsteps':
         
         data1 = [e for e in gathered_data if 0 in e['labels']]  # vulnerable
         print('length of vulnerable', len(data1))
@@ -241,10 +242,29 @@ def main(args):
                         elif not paired_data['match'] and not gathered_data[i]['match']:
                             PR += 1
                         
-    if accelerator.is_main_process and dataset_name == 'primevul_test_paired':
+    if accelerator.is_main_process and dataset_name == 'primevul_test_paired' and criterion != 'allsteps':
         sum_=PC+PV+PB+PR
         print(f'{dataset_name} PC: {PC/sum_}, PV: {PV/sum_}, PB: {PB/sum_}, PR: {PR/sum_}')
-
+    elif accelerator.is_main_process and criterion == 'allsteps':
+        predicted_labels = [e['predicted_label'] for e in gathered_data]
+        predicted_labels =  np.array(np.concatenate(predicted_labels))
+        gt_labels = [e['labels'] for e in gathered_data]
+        gt_labels = np.array(np.concatenate(gt_labels))
+        print('predicted_labels', type(predicted_labels), 'gt_labels', type(gt_labels))
+        TP = np.sum((predicted_labels == 1) & (gt_labels == 0))  #predicted_labels < 0 is vul, gt_labels = 0 is vulnerable
+        FP = np.sum((predicted_labels == 1) & (gt_labels == 1))
+        FN = np.sum((predicted_labels == 0) & (gt_labels == 0))
+        TN = np.sum((predicted_labels == 0) & (gt_labels == 1))
+        print('TP', TP, 'FP', FP, 'FN', FN, 'TN', TN)
+        
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        f1 = 2 * precision * recall / (precision + recall)
+        
+        print(f'{dataset_name} precision: {precision}, recall: {recall}, f1: {f1}')
+        print(f"Accuracy: {(TP + TN) / (TP + TN + FP + FN)}")
+        print(f"Total number of results: {len(predicted_labels)}")
+        
     if accelerator.distributed_type == "MULTI_GPU":
         import torch.distributed as dist
         dist.destroy_process_group()

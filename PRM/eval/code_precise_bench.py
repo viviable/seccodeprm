@@ -140,6 +140,9 @@ def main(args):
             batch = collate_fn(batch_, tokenizer, separator)
             input_ids = batch['input_ids'].to(accelerator.device)
             input_ids = input_ids.to(torch.long)
+            if input_ids.size(-1) > 30000:
+                print('input_ids.size(-1)', input_ids.size(-1))
+                continue
             label = batch['label']
             labels = batch['labels']
             score_ids = batch['score_ids']

@@ -5,10 +5,13 @@ from tqdm import tqdm
 from transformers import AutoTokenizer
 import argparse
 
-hf_dataset = {
-    "bigvul_dedup_test": load_dataset('vivi-yu/bigvul_dedup_test')['train'],
-    "bigvul_one_zero_dedup_test": load_dataset('vivi-yu/bigvul_one_zero_dedup_test')['train'],
-    
+datasets = {
+    "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
+    "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
+    "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
+    "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
+    "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
+    "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
 }
 
 def extract_label(output):
@@ -23,96 +26,106 @@ def extract_label(output):
 def arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--criteria", type=str, default="steps-level", choices=["steps-level", "sample-level"])
-    parser.add_argument("--dataset", type=str, default="bigvul_dedup_test", choices=["bigvul_dedup_test", "bigvul_one_zero_dedup_test"])
     return parser.parse_args()
 
 def main():
-    # dataset = load_from_disk('/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test')
-    # dataset = dataset.select(range(10))
-    dataset = load_dataset('vivi-yu/bigvul_dedup_test')['train']
-    model_name = "openai/gpt-oss-120b"
+    
+    args = arg_parser()
+    model_name = "openai/gpt-oss-20b"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     llm = LLM(model=model_name, tensor_parallel_size=1)
     sampling_params = SamplingParams(max_tokens=131072)
-
-
-    # 推理
-    prompts = []
-    labels = []
-    messages = []
-    texts = []
-    for data in dataset:
-        if criteria == "steps-level":
-            for i in range(len(data["completions"])):
+    
+    criteria = args.criteria
+    
+    for dataset_name in datasets:
+        dataset = datasets[dataset_name]
+        # 推理
+        prompts = []
+        labels = []
+        messages = []
+        texts = []
+        for data in dataset:
+            if criteria == "steps-level":
+                for i in range(len(data["completions"])):
+                    prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
+                    prompts.append(prompt)
+                    labels.append(data["labels"][i])
+            elif criteria == "sample-level":
                 prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
                 prompts.append(prompt)
-                labels.append(data["labels"][i])
-        elif criteria == "sample-level":
-            prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
-            prompts.append(prompt)
-            if 0 in data["labels"]:
-                labels.append(0)
-            else:
-                labels.append(1)
-            
+                if 0 in data["labels"]:
+                    labels.append(0)
+                else:
+                    labels.append(1)
+                
 
-    messages = [
-        [{"role": "user", "content": prompt}]
-        for prompt in prompts
-    ]
-    texts = [
-        tokenizer.apply_chat_template(
-            message,
-            tokenize=False,
-            add_generation_prompt=True,
+        messages = [
+            [{"role": "user", "content": prompt}]
+            for prompt in prompts
+        ]
+        texts = [
+            tokenizer.apply_chat_template(
+                message,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            for message in messages
+        ]
+
+        output = llm.generate(texts, sampling_params)
+        answer_medium = [i.outputs[0].text for i in output]
+
+        output = llm.generate(
+            [text.replace("Reasoning: medium", "Reasoning: high") for text in texts],
+            sampling_params,
         )
-        for message in messages
-    ]
 
-    output = llm.generate(texts, sampling_params)
-    answer_medium = [i.outputs[0].text for i in output]
-
-    output = llm.generate(
-        [text.replace("Reasoning: medium", "Reasoning: high") for text in texts],
-        sampling_params,
-    )
-
-    answer_high = [i.outputs[0].text for i in output]
+        answer_high = [i.outputs[0].text for i in output]
 
 
-    output = llm.generate(
-        [text.replace("Reasoning: medium", "Reasoning: low") for text in texts],
-        sampling_params,
-    )
+        output = llm.generate(
+            [text.replace("Reasoning: medium", "Reasoning: low") for text in texts],
+            sampling_params,
+        )
 
-    answer_low = [i.outputs[0].text for i in output]
+        answer_low = [i.outputs[0].text for i in output]
 
-    names = ["answer_medium", "answer_high", "answer_low"]
-    for answers, name in zip([answer_medium, answer_high, answer_low], names):
-        acc_safe = 0
-        acc_vul = 0
-        invalid = 0
+        names = ["answer_medium", "answer_high", "answer_low"]
+        for answers, name in zip([answer_medium, answer_high, answer_low], names):
+            TP = 0
+            FP = 0
+            TN = 0
+            FN = 0
+            invalid = 0
+            results = []
+            for i in tqdm(range(0, len(prompts))):
+                output_text = answers[i]
+                safe = extract_label(output_text)
+                results.append(output_text)
+                
+                if safe == 1 and labels[i] == 1:
+                    TN += 1
+                elif safe == 0 and labels[i] == 0:
+                    TP += 1
+                elif safe == 0 and labels[i] == 1:
+                    FN += 1
+                elif safe == 1 and labels[i] == 0:
+                    FP += 1
+                elif safe == -1:
+                    invalid += 1
+            print(f"name: {dataset_name}_{name}")
+            print(f"TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}")
+            print(f"Precision: {TP / (TP + FP)}")
+            print(f"Recall: {TP / (TP + FN)}")
+            print(f"Accuracy: {(TP + TN) / (TP + TN + FP + FN)}")
+            print(f"F1-score: {2 * TP / (2 * TP + FP + FN)}")
+            print(f"Total number of results: {len(results)}")
+            print(f"Invalid: {invalid / len(results)}")
 
-        for i in tqdm(range(0, len(prompts))):
-            output_text = answers[i]
-            safe = extract_label(output_text)
-            if safe == 1 and labels[i] == 1:
-                acc_safe += 1
-            elif safe == 0 and labels[i] == 0:
-                acc_vul += 1
-            elif safe == -1:
-                invalid += 1
-
-        acc = (acc_safe + acc_vul) / len(prompts)
-        print(f"Accuracy: {acc}")
-        print(f"Total number of results: {len(prompts)}")
-        print(f"Accuracy of safe: {acc_safe / (np.array(labels)==1).sum()}")
-        print(f"Accuracy of vul: {acc_vul / (np.array(labels)==0).sum()}")
-        print(f"Invalid: {invalid / len(prompts)}")
-
-        with open(f"baseline_llm_prompting_oss_{name}.txt", "w") as f:
-            for result in answers:
-                f.write(result + "\n")
+            with open(f"baseline_llm_prompting_oss_{name}_{dataset_name}.txt", "w") as f:
+                for result in answers:
+                    f.write(result + "\n")
 
 
 if __name__ == "__main__":
