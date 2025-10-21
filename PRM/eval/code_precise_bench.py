@@ -102,8 +102,10 @@ def main(args):
     print(f'Loading model from {model_path}')
     model = transformers.AutoModelForTokenClassification.from_pretrained(model_path)
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
+    model = model.bfloat16()
     model = accelerator.prepare(model)
     model.eval()
+
 
     for config, num in configs.items():
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]

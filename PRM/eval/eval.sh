@@ -10,8 +10,11 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # sven
 # nohup torchrun --nproc_per_node=4 --master_port 46001 code_sven_bench.py -m /project/flame/wyu3/PRM/output/stage2/sven_s2_last_10epoch -d sven_val -t 0.1 -c allsteps > sven_s2_10epoch_sven_val_t0.1_allsteps.log 2>&1 &
+nohup torchrun --nproc_per_node=4 --master_port 46001 code_sven_bench.py -m Qwen/Qwen2.5-Math-PRM-72B -d sven_val -t 0.1 -c allsteps > sven_baseline_qwenprm_72b.log 2>&1 &
+
 #precise bugs
-nohup torchrun --nproc_per_node=4 --master_port 46005 code_precise_bench.py -m  /project/flame/wyu3/PRM/output/stage1/coder_s1_precisebugs_3epoch/checkpoint-918/ -b 1 > precise_s1_3epoch_918.log 2>&1 &
+# nohup torchrun --nproc_per_node=4 --master_port 46005 code_precise_bench.py -m  /project/flame/wyu3/PRM/output/stage2/precisebugs_s2_1epoch_s1_918 -b 1 > precise_s2_1epoch_1632.log 2>&1 &
+# nohup torchrun --nproc_per_node=4 --master_port 46005 code_precise_bench.py -m  Qwen/Qwen2.5-Math-PRM-7B  -b 1 > precise_baseline_qwen2.5_7b.log 2>&1 &
 
 #primevul
 # nohup torchrun --nproc_per_node=4 --master_port 46003 code_primevul_bench.py -m /project/flame/wyu3/PRM/output/stage2/primevul_s2_3epoch_s1_s2/checkpoint-1827/  -b 1  -d primevul_test_paired  -c allsteps > primevul_stage2_paired_ckp1827_allsteps.log 2>&1 &
@@ -22,4 +25,4 @@ nohup torchrun --nproc_per_node=4 --master_port 46005 code_precise_bench.py -m  
 # nohup torchrun --nproc_per_node=4 --master_port 46005 code_primevul_bench.py -m /project/flame/wyu3/PRM/output/stage1/coder_last_s1_sven_90epoch/checkpoint-1080 -d primevul_test_paired -t 0.1 > transfer_sven_s1_ckp1080_prime_paired_t0.1.log 2>&1 &
 
 # reposvul
-# nohup torchrun --nproc_per_node=4 --master_port 46005 code_repos_bench.py -m /project/flame/wyu3/PRM/output/stage1/coder_s1_reposvul_3epoch/checkpoint-297/ -b 1 -d reposvul_test  > reposvul_s1_3epoch_ckp297.log 2>&1 &
+# nohup torchrun --nproc_per_node=4 --master_port 46005 code_repos_bench.py -m /project/flame/wyu3/PRM/output/stage2/reposvul_s2_1epoch_s1_297 -b 1 -d reposvul_test  > reposvul_s2_1epoch_s1_ckp297.log 2>&1 &

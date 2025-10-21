@@ -108,6 +108,7 @@ def main(args):
     model = transformers.AutoModelForTokenClassification.from_pretrained(model_path)
     # model = model.half()
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
+    model = model.bfloat16()
     model = accelerator.prepare(model)
     model.eval()
     dataset_path = configs[dataset_name]

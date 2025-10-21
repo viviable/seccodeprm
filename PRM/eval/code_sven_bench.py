@@ -116,6 +116,7 @@ def main(args):
     print(f'Loading model from {model_path}')
     model = transformers.AutoModelForTokenClassification.from_pretrained(model_path)
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
+    model = model.bfloat16()
     model = accelerator.prepare(model)
     model.eval()
 

@@ -5,13 +5,13 @@ import numpy as np
 from tqdm import tqdm
 
 datasets = {
-    "precisebugs_test": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["test"],
+    # "precisebugs_test": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["test"],
     "reposvul_test": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")["test"],
-    "sven_test": load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")["test"],
-    "bigvul_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"],
-    "bigvul_dedup_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup"),
-    "primevul_test_paired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["test"],
-    "primevul_test_unpaired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired")["test"],
+    # "sven_test": load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")["test"],
+    # "bigvul_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"],
+    # "bigvul_dedup_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup"),
+    # "primevul_test_paired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["test"],
+    # "primevul_test_unpaired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired")["test"],
 }
 
 # datasets = {
@@ -52,11 +52,13 @@ def main():
 
     for dataset_name in datasets:
         dataset = datasets[dataset_name]
+        if dataset_name == "precisebugs_test" or dataset_name == "reposvul_test":
+            dataset = dataset.select(range(100))
         # 推理
         prompts = []
         labels = []
         for data in dataset:
-            for i in range(len(data["completions"])):
+            for i in tqdm(range(len(data["completions"]))):
                 prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
                 tokens = tokenizer.encode(prompt)
                 if len(tokens) > 30000:

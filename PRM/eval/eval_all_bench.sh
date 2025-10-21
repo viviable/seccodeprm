@@ -46,13 +46,12 @@ mkdir -p "${LOG_DIR}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
 declare -a TASK_MATRIX=(
-  "binary_allsteps|4|46005|code_binary_process_bench.py|-b 1 -c allsteps"
   "bigvul_dedup|4|46003|code_bigvul_bench.py|-b 1 -d bigvul_dedup"
-  "sven_val|4|46001|code_sven_bench.py|-d sven_val -t 0.1 -c allsteps"
-  "precisebugs|4|46006|code_precise_bench.py|-b 1"
-  "primevul_paired|4|46002|code_primevul_bench.py|-b 1 -d primevul_test_paired -c allsteps"
-  "primevul_unpaired|4|46004|code_primevul_bench.py|-b 1 -d primevul_test_unpaired"
-  "reposvul|4|46007|code_repos_bench.py|-b 1 -d reposvul_test"
+  "sven_val|4|46003|code_sven_bench.py|-d sven_val -t 0.1 -c allsteps"
+  "precisebugs|4|46003|code_precise_bench.py|-b 1"
+  "primevul_paired|4|46003|code_primevul_bench.py|-b 1 -d primevul_test_paired -c allsteps"
+  "primevul_unpaired|4|46003|code_primevul_bench.py|-b 1 -d primevul_test_unpaired"
+  "reposvul|4|46003|code_repos_bench.py|-b 1 -d reposvul_test"
 )
 
 parse_csv() {
@@ -117,8 +116,13 @@ launch_bench() {
   printf '%q ' "${torch_cmd[@]}" > "${cmd_file}"
   printf '\n' >> "${cmd_file}"
 
-  echo "[LAUNCH] ${bench_name} -> ${log_file}"
-  nohup "${torch_cmd[@]}" > "${log_file}" 2>&1 &
+  echo "[RUN] ${bench_name} -> ${log_file}"
+  if "${torch_cmd[@]}" > "${log_file}" 2>&1; then
+    echo "[DONE] ${bench_name}"
+  else
+    echo "[FAIL] ${bench_name}. Check log: ${log_file}" >&2
+    return 1
+  fi
 }
 
 for task in "${TASK_MATRIX[@]}"; do
@@ -137,4 +141,4 @@ for task in "${TASK_MATRIX[@]}"; do
 done
 
 echo
-echo "All benches launched. Logs will appear under: ${LOG_DIR}"
+echo "All benches completed. Logs are under: ${LOG_DIR}"

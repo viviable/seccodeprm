@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_precisebugs_3epoch/checkpoint-918/ \
-    --train_data_path "/project/flame/wyu3/PRM/precisebugs_processed_dataset" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage2/reposvul_s2_1epoch_s1_297 \
+    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset" \
     --fix_llm False \
     --num_train_epochs 1 \
     --learning_rate 1e-6 \
-    --run_name precisebugs_s2_1epoch_s1_918 \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/precisebugs_s2_1epoch_s1_918 \
+    --run_name reposvul_s2_2epoch_s2_526 \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/reposvul_s2_2epoch_s2_526 \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \
