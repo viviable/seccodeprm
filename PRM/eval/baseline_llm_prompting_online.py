@@ -42,6 +42,7 @@ def main():
 
     for dataset_name in datasets:
         dataset = datasets[dataset_name]
+        dataset = dataset.select(range(100))
         # 推理
         prompts = []
         labels = []

@@ -3,14 +3,23 @@ from transformers import AutoTokenizer
 
 import json
 import re
-
+## for test
+# datasets = {
+#     "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
+#     "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
+#     "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
+#     "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
+#     "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
+#     "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
+# }
+# for train
 datasets = {
-    "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
-    "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
-    "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
-    "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
-    "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
-    "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
+    "precisebugs_train": load_dataset("vivi-yu/vul_code_precise")["train"], 
+    "reposvul_train": load_dataset("vivi-yu/reposvul_processed_dataset")["train"],
+    "sven_train": load_dataset("vivi-yu/vul_code_sven")["train"],
+    "bigvul_train": load_dataset("vivi-yu/bigvul_processed")["train"],
+    "primevul_train_paired": load_dataset("vivi-yu/primevul_processed_dataset")["train"],
+    "primevul_train_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["train"],
 }
 
 
@@ -125,10 +134,8 @@ def get_dataset_stat(dataset_name):
     print(f"average vul step ratio in vul examples is {sum(vul_step_ratios) / len(vul_step_ratios)}")
     print(f"average vul step in all examples is {sum(vul_step_num) / sum(total_step_num)}")
     
-    import pdb; pdb.set_trace()
     ### cwe  and language type
-    
-    if dataset_name == "precisebugs_test":
+    if 'precisebugs' in dataset_name:
         vul_cwes = []
         vul_language_types = []
         for example in dataset:
@@ -138,17 +145,17 @@ def get_dataset_stat(dataset_name):
             language = extract_language(data_dict)
             vul_cwes.append(cwe)
             vul_language_types.append(language)
-    elif dataset_name == "reposvul_test":
+    elif 'reposvul' in dataset_name:
         vul_cwes = []
         vul_language_types = []
-    elif dataset_name == "sven_test":
+    elif 'sven' in dataset_name:
         vul_cwes = []
         vul_language_types = []
         for example in dataset:
             data = example['other_info']
             cwe = data['vul_type']
             vul_cwes.append(cwe)
-    elif dataset_name == "bigvul_dedup_test":
+    elif 'bigvul' in dataset_name:
         vul_cwes = []
         vul_language_types = []
         for example in dataset:
@@ -157,7 +164,7 @@ def get_dataset_stat(dataset_name):
             language = data['lang']
             vul_cwes.append(cwe)
             vul_language_types.append(language)
-    elif dataset_name == "primevul_test_paired":
+    elif 'primevul' in dataset_name:
         vul_cwes = []
         vul_language_types = []
         for example in dataset:
@@ -166,27 +173,18 @@ def get_dataset_stat(dataset_name):
             language = extract_language_from_file_name(data['file_name'])
             vul_cwes.extend(cwe)
             vul_language_types.append(language)
-    elif dataset_name == "primevul_test_unpaired":
-        vul_cwes = []
-        vul_language_types = []
-        for example in dataset:
-            data = example['other_info']
-            cwe = data['cwe']
-            language = extract_language_from_file_name(data['file_name'])
-            vul_cwes.extend(cwe)
-            vul_language_types.append(language)
-    import pdb; pdb.set_trace()
+
     print(f"vul cwes: {set(vul_cwes)}")
     print(f"vul language types: {set(vul_language_types)}")
     
     
     
 if __name__ == "__main__":
-    # get_dataset_stat("precisebugs_test")
-    # get_dataset_stat("reposvul_test")
-    # get_dataset_stat("sven_test")
-    # get_dataset_stat("bigvul_dedup_test")
-    get_dataset_stat("primevul_test_paired")
-    get_dataset_stat("primevul_test_unpaired")
+    # get_dataset_stat("precisebugs_train")
+    # get_dataset_stat("reposvul_train")
+    get_dataset_stat("sven_train")
+    get_dataset_stat("bigvul_train")
+    get_dataset_stat("primevul_train_paired")
+    get_dataset_stat("primevul_train_unpaired")
     
     

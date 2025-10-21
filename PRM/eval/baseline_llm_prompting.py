@@ -35,6 +35,8 @@ def main():
     
     # model_path = "Qwen/Qwen2.5-Coder-32B-Instruct"
     model_path = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    # model_path = "Codestral"
+    
     
     if "32b" or "30b" in model_path.lower():
         tensor_parallel_size = 4
@@ -52,8 +54,7 @@ def main():
 
     for dataset_name in datasets:
         dataset = datasets[dataset_name]
-        if dataset_name == "precisebugs_test" or dataset_name == "reposvul_test":
-            dataset = dataset.select(range(100))
+        dataset = dataset.select(range(100))
         # 推理
         prompts = []
         labels = []

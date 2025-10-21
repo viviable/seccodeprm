@@ -31,15 +31,16 @@ def arg_parser():
 def main():
     
     args = arg_parser()
-    model_name = "openai/gpt-oss-20b"
+    model_name = "openai/gpt-oss-120b"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    llm = LLM(model=model_name, tensor_parallel_size=1)
+    llm = LLM(model=model_name, tensor_parallel_size=4)
     sampling_params = SamplingParams(max_tokens=131072)
     
     criteria = args.criteria
     
     for dataset_name in datasets:
         dataset = datasets[dataset_name]
+        dataset = dataset.select(range(100))
         # 推理
         prompts = []
         labels = []
