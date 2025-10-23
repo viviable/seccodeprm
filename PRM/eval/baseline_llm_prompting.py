@@ -1,4 +1,4 @@
-from datasets import load_from_disk
+from datasets import load_from_disk, load_dataset
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 import numpy as np
@@ -6,14 +6,21 @@ from tqdm import tqdm
 
 datasets = {
     # "precisebugs_test": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["test"],
-    "reposvul_test": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")["test"],
+    # "reposvul_test": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")["test"],
     # "sven_test": load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")["test"],
     # "bigvul_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"],
     # "bigvul_dedup_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup"),
     # "primevul_test_paired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["test"],
     # "primevul_test_unpaired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired")["test"],
 }
-
+datasets = {
+    "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
+    "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
+    "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
+    "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
+    "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
+    "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
+}
 # datasets = {
 #     "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
 #     "reposvul_test": load_dataset("vivi-yu/vul_code_repos")["test"],
@@ -34,11 +41,12 @@ def extract_label(output):
 def main():
     
     # model_path = "Qwen/Qwen2.5-Coder-32B-Instruct"
-    model_path = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
-    # model_path = "Codestral"
+    # model_path = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    # model_path = "mistralai/Codestral-22B-v0.1"
+    model_path = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
     
     
-    if "32b" or "30b" in model_path.lower():
+    if "32b" or "30b" or "17b" in model_path.lower():
         tensor_parallel_size = 4
     else:
         tensor_parallel_size = 1
@@ -85,6 +93,7 @@ def main():
                 outputs = llm.generate(prompts_batch, sampling_params)
                 for j in range(max_len - i):
                     output_text = outputs[j].outputs[0].text
+                    output_text = output_text.split("assistantfinal:")[-1].lower()
                     safe = extract_label(output_text)
                     results.append(output_text)
                     if safe == 1 and labels_batch[j] == 1:
@@ -101,13 +110,23 @@ def main():
                 print(f"Error: {e}")
                 continue
             
-            
-                    
+        print('='*20)
+        print(f"name: {dataset_name}")
         print(f"TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}")
-        print(f"Precision: {TP / (TP + FP)}")
-        print(f"Recall: {TP / (TP + FN)}")
+        if TP + FP == 0:
+            print("Precision is undefined")
+        else:
+            print(f"Precision: {TP / (TP + FP)}")
+        if TP + FN == 0:
+            print("Recall is undefined")
+        else:
+            print(f"Recall: {TP / (TP + FN)}")
+
         print(f"Accuracy: {(TP + TN) / (TP + TN + FP + FN)}")
-        print(f"F1-score: {2 * TP / (2 * TP + FP + FN)}")
+        if 2 * TP + FP + FN == 0:
+            print("F1-score is undefined")
+        else:
+            print(f"F1-score: {2 * TP / (2 * TP + FP + FN)}")
         print(f"Total number of results: {len(results)}")
         print(f"Invalid: {invalid / len(results)}")
         

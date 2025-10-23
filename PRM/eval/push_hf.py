@@ -62,7 +62,7 @@ def push_dataset():
     
     dataset = load_from_disk(dataset_path)
     # dataset = unify_dataset(dataset)
-    
+    dataset = dataset.remove_columns(['other_info'])
     dataset.push_to_hub(hub_dataset_id)
 
 def save_tokenized_dataset(tokenizer_path, dataset_path, output_path):
