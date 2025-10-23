@@ -165,8 +165,6 @@ def train():
         **data_module
     )
     print('training_args.resume_from_checkpoint', training_args.resume_from_checkpoint)  # string
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    resume_checkpoint = None
     if training_args.resume_from_checkpoint != 'False' and os.path.exists(training_args.output_dir):
         print('resume from checkpoint')
         ckpts = [d for d in os.listdir(training_args.output_dir) if d.startswith("checkpoint-")]
@@ -176,12 +174,12 @@ def train():
             print('loading checkpoint from', latest_path)
             print(f'Before training - global_step: {trainer.state.global_step}')
             print(f'Before training - save_steps: {training_args.save_steps}')
-            resume_checkpoint = latest_path
+            trainer.train(resume_from_checkpoint=latest_path)
+            # trainer.train(resume_from_checkpoint=True)
             
     else:
         print('no checkpoint found, training from scratch')
-    trainer.train(resume_from_checkpoint=resume_checkpoint)
-    
+        trainer.train()
     trainer.save_state()
     #['args', 'compute_loss_func', 'hp_name', 'deepspeed', 'is_in_train', 'model', 'accelerator', 'gather_function', 'is_deepspeed_enabled', 'is_fsdp_enabled', 'is_tp_enabled', '_memory_tracker', 'model_init', 'is_model_parallel', 'is_fsdp_xla_enabled', 'place_model_on_device', 'data_collator', 'train_dataset', 'eval_dataset', 'processing_class', 'model_wrapped', 'model_accepts_loss_kwargs', 'neftune_noise_alpha', 'compute_metrics', 'preprocess_logits_for_metrics', 'optimizer', 'lr_scheduler', 'optimizer_cls_and_kwargs', 'callback_handler', '_loggers_initialized', 'hub_model_id', '_signature_columns', 'use_apex', 'use_cpu_amp', 'label_smoother', 'control', 'state', 'current_flos', 'hp_search_backend', 'label_names', 'can_return_loss', '_train_batch_size', '_created_lr_scheduler', 'is_fsdp_xla_v2_enabled', 'is_fsdp_xla_v1_enabled', '__module__', '__doc__', '_tag_names', '__init__', 'tokenize_row', '_save_checkpoint', 'create_model_card', '_get_learning_rate', 'log_metrics', 'metrics_format', 'save_metrics', 'save_state', 'tokenizer', '_activate_neftune', '_deactivate_neftune', 'add_callback', 'pop_callback', 'remove_callback', '_move_model_to_device', '_align_special_tokens', '_set_signature_columns_if_needed', '_remove_unused_columns', '_get_collator_with_removed_columns', '_get_train_sampler', '_get_dataloader', 'get_train_dataloader', '_get_eval_sampler', 'get_eval_dataloader', 'get_test_dataloader', 'create_optimizer_and_scheduler', 'get_decay_parameter_names', 'create_optimizer', 'get_num_trainable_parameters', 'get_learning_rates', 'get_optimizer_group', 'get_optimizer_cls_and_kwargs', 'create_scheduler', 'num_examples', 'num_tokens', '_hp_search_setup', '_report_to_hp_search', '_tune_save_checkpoint', 'call_model_init', 'torch_jit_model_eval', 'compare_trainer_and_checkpoint_args', '_wrap_model', 'train', 'get_tp_size', 'get_total_train_batch_size', '_inner_training_loop', '_get_output_dir', '_load_from_checkpoint', '_load_best_model', '_issue_warnings_after_load', '_evaluate', '_maybe_log_save_evaluate', '_load_rng_state', '_determine_best_metric', '_save_rng_state', '_save_optimizer_and_scheduler', '_load_optimizer_and_scheduler', '_save_scaler', '_load_scaler', '_load_callback_state', 'hyperparameter_search', 'log', '_prepare_input', '_prepare_inputs', '_is_attention_mask_causal', '_prepare_context_parallel_inputs', 'compute_loss_context_manager', 'autocast_smart_context_manager', 'training_step', 'compute_loss', 'is_local_process_zero', 'is_world_process_zero', 'save_model', '_save_tpu', '_save', 'store_flos', '_sorted_checkpoints', '_rotate_checkpoints', 'evaluate', 'predict', 'evaluation_loop', '_nested_gather', 'prediction_step', 'floating_point_ops', 'init_hf_repo', '_push_from_checkpoint', '_finish_current_push', 'push_to_hub', 'prediction_loop', '_gather_and_numpify', '_add_sm_patterns_to_gitignore', 'create_accelerator_and_postprocess', 'propagate_args_to_deepspeed', '_fsdp_qlora_plugin_updates', 'get_batch_samples', 'set_initial_training_values', '__dict__', '__weakref__', '__backends', '__new__', '__repr__', '__hash__', '__str__', '__getattribute__', '__setattr__', '__delattr__', '__lt__', '__le__', '__eq__', '__ne__', '__gt__', '__ge__', '__reduce_ex__', '__reduce__', '__subclasshook__', '__init_subclass__', '__format__', '__sizeof__', '__dir__', '__class__']
     

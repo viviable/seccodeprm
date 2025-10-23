@@ -93,14 +93,22 @@ def concatenate_splits(datasets: Iterable[DatasetDict]) -> DatasetDict:
 def main() -> None:
     source_paths = [
         "/project/flame/wyu3/PRM/reposvul_processed_dataset",
-        "/project/flame/wyu3/PRM/bigvul_processed_dataset",
+        # "/project/flame/wyu3/PRM/bigvul_processed_dataset",
         "/project/flame/wyu3/PRM/precisebugs_processed_dataset",
         "/project/flame/wyu3/PRM/primevul_processed_dataset",
         "/project/flame/wyu3/PRM/sven_processed_dataset",
     ]
-    datasets = [load_dataset_dict(path) for path in source_paths]
+    # repli_num = [5, 1, 30, 600]
+    # repli_num = [5, 1, 30, 600]
+    repli_num = [3, 1, 3, 40]
+    
+    
+    datasets = []
+    for path, num in zip(source_paths, repli_num):
+        for _ in range(num):
+            datasets.append(load_dataset_dict(path))
     merged = concatenate_splits(datasets)
-    output_dir = Path("/project/flame/wyu3/PRM/all_processed_dataset")
+    output_dir = Path("/project/flame/wyu3/PRM/all_processed_dataset_31340")
     merged.save_to_disk(output_dir.as_posix())
 
 

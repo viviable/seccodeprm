@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_all_3epoch/checkpoint-4000/ \
-    --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset" \
+    --model_name_or_path Qwen/Qwen2.5-Coder-7B-Instruct \
+    --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset_31340" \
     --fix_llm True \
-    --num_train_epochs 3 \
+    --num_train_epochs 1 \
     --learning_rate 1e-4 \
-    --run_name coder_s1_all_3epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_all_3epoch \
+    --run_name coder_s1_all_31340_1epoch \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_all_31340_1epoch \
     --bf16 True \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \
@@ -36,4 +36,4 @@ torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
     --gradient_checkpointing True \
     --deepspeed ds_config_zero2.json \
     --ddp_timeout 3600 \
-    --resume_from_checkpoint True
+    --resume_from_checkpoint False

@@ -2,7 +2,7 @@ GPUS_PER_NODE=4
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
-MASTER_PORT=46006
+MASTER_PORT=46008
 
 DISTRIBUTED_ARGS="
     --nproc_per_node $GPUS_PER_NODE \
@@ -12,14 +12,14 @@ DISTRIBUTED_ARGS="
     --master_port $MASTER_PORT
 "
 
-torchrun $DISTRIBUTED_ARGS finetune.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage2/reposvul_s2_1epoch_s1_297 \
-    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset" \
+torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_all_3epoch \
+    --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset" \
     --fix_llm False \
     --num_train_epochs 1 \
     --learning_rate 1e-6 \
-    --run_name reposvul_s2_2epoch_s2_526 \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/reposvul_s2_2epoch_s2_526 \
+    --run_name coder_s1_all_1epoch_s2 \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/coder_s1_all_1epoch_s2 \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \
@@ -34,4 +34,5 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --logging_steps 1 \
     --report_to "wandb" \
     --gradient_checkpointing True \
-    --deepspeed ds_config_zero2.json
+    --deepspeed ds_config_zero2.json \
+    --resume_from_checkpoint True

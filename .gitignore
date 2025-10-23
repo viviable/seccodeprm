@@ -18,6 +18,11 @@ tensorflow/my_graph/*
 .idea/
 # C extensions
 *.so
+**/log/
+**/PRM/*.txt
+**/PRM/eval/*.txt
+
+
 
 # Distribution / packaging
 .Python
