@@ -1,4 +1,4 @@
-GPUS_PER_NODE=4
+GPUS_PER_NODE=$(nvidia-smi | grep 80GB | wc -l)
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost

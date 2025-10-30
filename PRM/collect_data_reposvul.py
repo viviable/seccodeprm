@@ -293,7 +293,6 @@ def concat_eval_dataset():
     dataset.save_to_disk(data_path+'_concat')
     print(f"Removed {number} single empty completion")
 
-
 def reorg():
     from datasets import load_from_disk, DatasetDict
 

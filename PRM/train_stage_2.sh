@@ -1,4 +1,4 @@
-GPUS_PER_NODE=4
+GPUS_PER_NODE=$(nvidia-smi | grep 80GB | wc -l)
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
@@ -13,7 +13,7 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_all_31340_2epoch \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage2/coder_s2_all_31340_froms1_2epoch/checkpoint-6500 \
     --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test" \
     --fix_llm False \
     --num_train_epochs 1 \
@@ -35,4 +35,4 @@ torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
     --report_to "wandb" \
     --gradient_checkpointing True \
     --deepspeed ds_config_zero2.json \
-    --enable_load_ckpt False 
+    --enable_load_ckpt True 

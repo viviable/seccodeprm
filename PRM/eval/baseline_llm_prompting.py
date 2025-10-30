@@ -3,7 +3,7 @@ from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 import numpy as np
 from tqdm import tqdm
-
+import torch
 datasets = {
     # "precisebugs_test": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["test"],
     # "reposvul_test": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")["test"],
@@ -45,11 +45,9 @@ def main():
     # model_path = "mistralai/Codestral-22B-v0.1"
     model_path = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
     
-    
-    if "32b" or "30b" or "17b" in model_path.lower():
-        tensor_parallel_size = 4
-    else:
-        tensor_parallel_size = 1
+    available_gpus = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
+    tensor_parallel_size = len(available_gpus)
+
         
     llm = LLM(
         model=model_path,
