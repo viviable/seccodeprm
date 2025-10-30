@@ -41,17 +41,18 @@ SANITISED_MODEL="$(echo "${MODEL%/}" | sed 's#[^A-Za-z0-9._-]#_#g')"
 
 LOG_ROOT="${LOG_ROOT:-$DEFAULT_LOG_ROOT}"
 LOG_DIR="${LOG_ROOT}/${SANITISED_MODEL}"
+PORT=46003
 mkdir -p "${LOG_DIR}"
 
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
 declare -a TASK_MATRIX=(
-  "bigvul_dedup|4|46003|code_bigvul_bench.py|-b 1 -d bigvul_dedup"
-  "sven_val|4|46003|code_sven_bench.py|-d sven_val -t 0.1 -c allsteps"
-  "precisebugs|4|46003|code_precise_bench.py|-b 1"
-  "primevul_paired|4|46003|code_primevul_bench.py|-b 1 -d primevul_test_paired -c allsteps"
-  "primevul_unpaired|4|46003|code_primevul_bench.py|-b 1 -d primevul_test_unpaired"
-  "reposvul|4|46003|code_repos_bench.py|-b 1 -d reposvul_test"
+  "bigvul_dedup|4|${PORT}|code_bigvul_bench.py|-b 1 -d bigvul_dedup"
+  "sven_val|4|${PORT}|code_sven_bench.py|-d sven_val -t 0.1 -c softmax"
+  "precisebugs|4|${PORT}|code_precise_bench.py|-b 1"
+  "primevul_paired|4|${PORT}|code_primevul_bench.py|-b 1 -d primevul_test_paired -c allsteps"
+  "primevul_unpaired|4|${PORT}|code_primevul_bench.py|-b 1 -d primevul_test_unpaired"
+  "reposvul|4|${PORT}|code_repos_bench.py|-b 1 -d reposvul_test"
 )
 
 parse_csv() {

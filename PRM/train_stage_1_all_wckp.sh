@@ -2,7 +2,7 @@ GPUS_PER_NODE=4
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
-MASTER_PORT=46006
+MASTER_PORT=46008
 
 DISTRIBUTED_ARGS="
     --nproc_per_node $GPUS_PER_NODE \
@@ -14,12 +14,12 @@ DISTRIBUTED_ARGS="
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
     --model_name_or_path Qwen/Qwen2.5-Coder-7B-Instruct \
-    --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset_31340" \
+    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset_concat" \
     --fix_llm True \
-    --num_train_epochs 1 \
+    --num_train_epochs 3 \
     --learning_rate 1e-4 \
-    --run_name coder_s1_all_31340_1epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_all_31340_1epoch \
+    --run_name coder_s1_reposvul_3epoch_concat \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_reposvul_3epoch_concat \
     --bf16 True \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \
@@ -36,4 +36,4 @@ torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
     --gradient_checkpointing True \
     --deepspeed ds_config_zero2.json \
     --ddp_timeout 3600 \
-    --resume_from_checkpoint False
+    --enable_load_ckpt False

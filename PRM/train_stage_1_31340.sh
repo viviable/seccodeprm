@@ -2,7 +2,7 @@ GPUS_PER_NODE=4
 NNODES=1
 NODE_RANK=0
 MASTER_ADDR=localhost
-MASTER_PORT=46006
+MASTER_PORT=46008
 
 DISTRIBUTED_ARGS="
     --nproc_per_node $GPUS_PER_NODE \
@@ -13,27 +13,27 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
-    --model_name_or_path  Qwen/Qwen2.5-Coder-32B \
-    --train_data_path "vivi-yu/all_processed_tokenized_31340" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_all_31340_2epoch \
+    --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test" \
     --fix_llm True \
     --num_train_epochs 1 \
     --learning_rate 1e-4 \
-    --run_name stage1_32b_31340_1epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/stage1_32b_31340_1epoch \
+    --run_name coder_s1_all_31340_3epoch \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_all_31340_3epoch \
     --bf16 True \
-    --per_device_train_batch_size 8 \
+    --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 1000 \
-    --save_total_limit 5 \
+    --save_total_limit 10 \
     --weight_decay 0.1 \
     --adam_beta2 0.95 \
     --warmup_ratio 0.0 \
     --logging_steps 1 \
     --report_to "wandb" \
     --gradient_checkpointing True \
-    --deepspeed my_config_zero3.json \
+    --deepspeed ds_config_zero2.json \
     --ddp_timeout 3600 \
-    --resume_from_checkpoint False
+    --enable_load_ckpt False

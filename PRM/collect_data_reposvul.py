@@ -263,10 +263,58 @@ def main(path):
     # Save all splits together as one DatasetDict (most efficient for datasets library)
     vul_dataset.save_to_disk(path)
     
+def concat_eval_dataset():
+    data_path = '/project/flame/wyu3/PRM/reposvul_processed_dataset'
+    dataset = load_from_disk(data_path)
+    eval_dataset = dataset['test']
+    train_dataset = dataset['train']
+    number = 0
     
+    for item in eval_dataset:
+        completions = item['completions']
+        for completion in completions:
+            if completion == '':
+                number += 1
+                completions.remove(completion)
+        new_list = [completions[i] + completions[i + 1] if i + 1 < len(completions) else completions[i] for i in range(0, len(completions), 2)]
+        item['completions'] = new_list
+    dataset['test'] = eval_dataset
+    
+    for item in train_dataset:
+        completions = item['completions']
+        for completion in completions:
+            if completion == '':
+                number += 1
+                completions.remove(completion)
+        new_list = [completions[i] + completions[i + 1] if i + 1 < len(completions) else completions[i] for i in range(0, len(completions), 2)]
+        item['completions'] = new_list
+    dataset['train'] = train_dataset
+    
+    dataset.save_to_disk(data_path+'_concat')
+    print(f"Removed {number} single empty completion")
 
+
+def reorg():
+    from datasets import load_from_disk, DatasetDict
+
+    # 加载数据
+    train_data = load_from_disk('/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized')
+    test_data = load_from_disk('/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_eval')
+
+    # 合并为一个 DatasetDict
+    dataset = DatasetDict({
+        'train': train_data,
+        'test': test_data
+    })
+
+    # 查看结构
+    print(dataset)
+    dataset.save_to_disk('/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test')
+    
 if __name__ == "__main__":
-    path = '/project/flame/wyu3/PRM/reposvul_processed_dataset'
-    main(path)
+    # path = '/project/flame/wyu3/PRM/reposvul_processed_dataset'
+    # main(path)
+    concat_eval_dataset()
+    # reorg()
     # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
     # one_zero_dataset(path)

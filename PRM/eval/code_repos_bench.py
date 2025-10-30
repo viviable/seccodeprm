@@ -83,7 +83,12 @@ def clear_cache():
     gc.collect()
 
 def load_data(dataset_name):
-    dataset = load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")['test']
+    if dataset_name == "reposvul_test":
+        dataset = load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")['test']
+    elif dataset_name == "reposvul_test_concat":
+        dataset = load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_concat")['test']
+    else:
+        raise ValueError(f"Invalid dataset name: {dataset_name}")
     
     return dataset
 
@@ -238,7 +243,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", type=str)
-    parser.add_argument("-d", "--dataset_name", choices=["reposvul_test"], type=str, default="reposvul_test")
+    parser.add_argument("-d", "--dataset_name", choices=["reposvul_test", "reposvul_test_concat"], type=str, default="reposvul_test")
     parser.add_argument("-b", "--batch_size", type=int, default=1)
     parser.add_argument("-w", "--num_of_workers", type=int, default=4)
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")

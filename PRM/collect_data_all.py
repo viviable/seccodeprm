@@ -99,8 +99,9 @@ def main() -> None:
         "/project/flame/wyu3/PRM/sven_processed_dataset",
     ]
     # repli_num = [5, 1, 30, 600]
-    # repli_num = [5, 1, 30, 600]
-    repli_num = [3, 1, 3, 40]
+    # repli_num = [3, 1, 3, 40]
+    repli_num = [3, 1, 10, 40]
+    
     
     
     datasets = []

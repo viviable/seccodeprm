@@ -32,7 +32,11 @@ class TrainingArguments(PRMConfig):
     max_length: int = field(default=128000)
     max_completion_length: int = field(default=8000)
     fix_llm: bool = field(default=False)
-
+    
+    enable_load_ckpt: bool = field(
+        default=True, 
+        metadata={"help": "Whether to load ckpt."}
+    )
 
 def safe_save_model_for_hf_trainer(
         trainer: transformers.Trainer, 
@@ -50,8 +54,15 @@ def make_supervised_data_module(data_args) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     assert data_args.train_data_path is not None
     # if 'bigvul' in data_args.train_data_path or 'precise' in data_args.train_data_path or 'sven' in data_args.train_data_path or 'primevul' in data_args.train_data_path:
-    train_dataset = load_from_disk(data_args.train_data_path)['train']
-    eval_dataset = load_from_disk(data_args.train_data_path)['test']
+    # train_dataset = load_from_disk(data_args.train_data_path)['train']
+    # eval_dataset = load_from_disk(data_args.train_data_path)['test']
+    train_dataset = load_dataset(data_args.train_data_path, split="train")
+    eval_dataset = load_dataset(data_args.train_data_path, split="test")
+    # for faster loading
+    if 'other_info' in train_dataset.column_names:
+        train_dataset = train_dataset.remove_columns('other_info')
+        # eval_dataset = eval_dataset.remove_columns('other_info')
+    eval_dataset = None
     resample = False
     if resample:
         # Step 1: Filter data with label 0
@@ -149,7 +160,7 @@ def train():
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=training_args.cache_dir,
-        use_fast=False,
+        use_fast=True,
         trust_remote_code=True,
     )
     # Load data
@@ -167,7 +178,8 @@ def train():
     print('training_args.resume_from_checkpoint', training_args.resume_from_checkpoint)  # string
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     resume_checkpoint = None
-    if training_args.resume_from_checkpoint != 'False' and os.path.exists(training_args.output_dir):
+    my_args_resume = training_args.enable_load_ckpt
+    if my_args_resume:
         print('resume from checkpoint')
         ckpts = [d for d in os.listdir(training_args.output_dir) if d.startswith("checkpoint-")]
         if ckpts:

@@ -54,15 +54,13 @@ def unify_dataset(dataset):
     return dataset
 
 def push_dataset():
-    dataset_path = '/project/flame/wyu3/PRM/all_processed_dataset'
-    hub_dataset_id = 'vivi-yu/all_processed'
+    dataset_path = '/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test'
+    hub_dataset_id = 'vivi-yu/all_processed_tokenized_31340'
     
-    
-
     
     dataset = load_from_disk(dataset_path)
     # dataset = unify_dataset(dataset)
-    dataset = dataset.remove_columns(['other_info'])
+    # dataset = dataset.remove_columns(['other_info'])
     dataset.push_to_hub(hub_dataset_id)
 
 def save_tokenized_dataset(tokenizer_path, dataset_path, output_path):
