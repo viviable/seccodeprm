@@ -1,4 +1,4 @@
-<div align="center">
+<div align="left">
 
 
 ## 🔧 Quick Start
@@ -17,28 +17,38 @@ Please refer to the [official installation guidance](https://verl.readthedocs.io
 
 ### Training of PRM
 
-We train the PRM in 2 stages using [TRL](https://github.com/huggingface/trl) and a [preprocessed PRM800K dataset](https://huggingface.co/datasets/HuggingFaceH4/prm800k-trl-dedup). In the first stage, we freeze the LLM and only train the last score layer (MLP) with 1e-4 learning rate rate for 3 epochs. In the second stage, we unfreeze the LLM and fine-tune all parameters with 1e-6 learning rate for 1 epoch. The resultant PRM is released through [HuggingFace](https://huggingface.co/jinachris/Qwen2.5-Math-7B-PRM800K).
-
+We train the PRM in 2 stages using [TRL](https://github.com/huggingface/trl) and a [preprocessed vul dataset](https://huggingface.co/vivi-yu). In the first stage, we freeze the LLM and only train the last score layer (MLP) with 1e-4 learning rate rate for 3 epochs. In the second stage, we unfreeze the LLM and fine-tune all parameters with 1e-6 learning rate for 1 epoch. 
 ```bash
 cd PRM
 # stage 1
-bash train_stage_1.sh
+bash ./PRM/train_stage_1_all_wckp.sh
 # stage 2
-bash train_stage_2.sh
+bash ./PRM/train_stage_2.sh
 ```
 
 ### Eval of PRM
-
+Eval tips: temperature=0.1 works better for every benchmark.
 #### 1. eval all the benchmark using 
 
 ```bash
-bash PRM/eval/eval_all.sh   model_dir
+bash ./PRM/eval/eval_all.sh   model_dir
 ```
 
 
 #### 2. eval single benchmark
 ```bash
-bash PRM/eval/eval.sh  
+bash ./PRM/eval/eval.sh  
 ```
+
+#### 3. eval ensemble model benchmark
+```bash
+bash ./PRM/eval/moe.sh  
+```
+
+#### 3. eval code generation benchmark
+```python
+python ./PRM/eval/ranking_code_bon_sven.py
+```
+
 
 ## acknowledgement
