@@ -49,6 +49,9 @@ bash ./PRM/eval/moe.sh
 ```python
 python ./PRM/eval/ranking_code_bon_sven.py
 ```
+For CWEval, please refer to https://github.com/Co1lin/CWEval and note that they operates in docker.
+
+For HumanEval, please refer to https://github.com/bigcode-project/bigcodebench for installation.
 
 
 ## acknowledgement
