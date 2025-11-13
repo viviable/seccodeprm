@@ -13,12 +13,12 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage2/coder_s2_all_31340_froms1_2epoch/checkpoint-6500 \
-    --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_reposvul_3epoch_merged \
+    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset_merged" \
     --fix_llm False \
     --num_train_epochs 1 \
     --learning_rate 1e-6 \
-    --run_name coder_s2_all_31340_froms1_2epoch \
+    --run_name coder_s2_all_31340_froms1_1epoch \
     --output_dir /project/flame/wyu3/PRM/output/stage2/coder_s2_all_31340_froms1_2epoch \
     --bf16 True \
     --per_device_train_batch_size 6 \

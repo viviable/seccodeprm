@@ -99,8 +99,8 @@ def main() -> None:
         "/project/flame/wyu3/PRM/sven_processed_dataset",
     ]
     # repli_num = [5, 1, 30, 600]
-    # repli_num = [3, 1, 3, 40]
-    repli_num = [3, 1, 10, 40]
+    repli_num = [3, 1, 3, 40]
+    # repli_num = [3, 1, 10, 40]
     
     
     
@@ -109,7 +109,7 @@ def main() -> None:
         for _ in range(num):
             datasets.append(load_dataset_dict(path))
     merged = concatenate_splits(datasets)
-    output_dir = Path("/project/flame/wyu3/PRM/all_processed_dataset_31340")
+    output_dir = Path("/project/flame/wyu3/PRM/all_processed_dataset_31340_pure")
     merged.save_to_disk(output_dir.as_posix())
 
 

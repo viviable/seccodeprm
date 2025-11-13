@@ -1,0 +1,30 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+
+void copy_file_content(const char *filename, char* out, char* buf, const int BUF_SIZE) {
+    int fd = open(filename, O_RDONLY);
+    if (fd < 0) {
+        perror("Error opening file");
+        return;
+    }
+    // strlen("File content: ") == 14
+    // buf = "File content: <...unused space...>"
+    // read file content to buf at offset 14
+    int remaining = BUF_SIZE - 14;
+    int count = read(fd, buf + 14, remaining);
+    if (count < 0) {
+        perror("Error reading file");
+        close(fd);
+        return;
+    }
+    // Null-terminate the buffer
+    buf[BUF_SIZE] = '\0';
+    // Copy all content in buf to out
+    strcpy(out, buf);
+    // Close the file descriptor
+    close(fd);
+}
+```

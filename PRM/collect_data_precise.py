@@ -180,7 +180,14 @@ def main(path):
 
                 source = 'PreciseBugs'
                 other_info = { k: data[k] for k in data.keys() if k not in ['buggy_code', 'fixing_code'] }
-                
+                if len(data['filenames']) == 1:
+                    filename = data['filenames'][0]
+                else:
+                    filename = data['filenames'][-1]
+                try:
+                    language = filename.split('.')[1]
+                except:
+                    language = 'None'
                 # Add both versions
                 split_data.append({
                     'prompt': prompt,
@@ -188,7 +195,9 @@ def main(path):
                     'labels': labels1,
                     'source': source,
                     'other_info': other_info,
-                    'index': index
+                    'cwe': data['type'].lower(),
+                    'index': index,
+                    'language': language,
                 })
                 split_data.append({
                     'prompt': prompt,
@@ -196,11 +205,12 @@ def main(path):
                     'labels': labels2,
                     'source': source,
                     'other_info': other_info,
-                    'index': index
+                    'index': index,
+                    'language': language,
+                    'cwe': data['type'].lower(),
                 })
             
         # Convert list to Dataset and add to DatasetDict
-        import pdb; pdb.set_trace()
         total_number = len(split_data)
         train_data = split_data[:int(total_number * 0.8)]
         val_data = split_data[int(total_number * 0.8):int(total_number * 0.9)]
@@ -217,7 +227,7 @@ def main(path):
     
 
 if __name__ == "__main__":
-    path = './precisebugs_processed_dataset'
+    path = '/project/flame/wyu3/PRM/precisebugs_processed_dataset'
     main(path)
     # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
     # one_zero_dataset(path)

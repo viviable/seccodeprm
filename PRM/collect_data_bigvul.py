@@ -135,7 +135,7 @@ def main(path):
         split_data = []
         
         for index, data in enumerate(tqdm(dataset, desc=f"Processing {split_name}")):
-            
+            import pdb; pdb.set_trace()
             if data['vul'] == 0:
                 code = data['func_after']
                 completions = code.split('\n\n')
@@ -148,6 +148,8 @@ def main(path):
                     'completions': completions,
                     'labels': labels,
                     'source': source,
+                    'vul': data,
+                    
                     'other_info': other_info,
                     'index': index
                 })
@@ -210,7 +212,7 @@ def main(path):
     
 
 if __name__ == "__main__":
-    # path = './bigvul_processed_dataset'
-    # main(path)
-    path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
-    one_zero_dataset(path)
+    path = './bigvul_processed_dataset'
+    main(path)
+    # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
+    # one_zero_dataset(path)

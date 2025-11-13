@@ -26,7 +26,7 @@ torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
     --gradient_accumulation_steps 4 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 1000 \
+    --save_steps 300 \
     --save_total_limit 5 \
     --weight_decay 0.1 \
     --adam_beta2 0.95 \

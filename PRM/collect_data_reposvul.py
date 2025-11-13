@@ -95,6 +95,53 @@ def compare_code_blocks(code1: str, code2: str) -> Tuple[List[dict], List[dict]]
     
     return list1, list2
 
+def print_reposvul_data():
+    path = "/project/flame/wyu3/PRM/ReposVul/ReposVul_c.jsonl"
+
+    with open(path, "r", encoding="utf-8") as f:
+        has_function = 0
+        for i, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as e:
+                # 解析错误时可记录或跳过
+                print(f"Line {i}: JSON decode error: {e}")
+                continue
+            import pdb; pdb.set_trace()
+            
+            if 'function_before' in record['details'][0]:
+                has_function += 1
+                has_vul = sum(1 for i, item in enumerate(record['details'][0]['function_before']) if item['target']!=0 )
+                if not has_vul:
+                    print(record['details'][0]['function_before'] == record['details'][0]['function_after'])
+                    
+            # 如果只想做少量示例展示，可在达到 N 条后 break
+            # if i >= 100: break
+            # sum(1 for i, item in enumerate(record['details'][0]['function_before']) if item['target']==0 and item != record['details'][0]['function_after'][i])
+            # sum(1 for i, item in enumerate(record['details'][0]['function_before']) if item['target']!= record['details'][0]['function_after'][i]['target'])
+            # sum(1 for i, item in enumerate(record['details'][0]['function_before']) if item['target']!=0 )
+            # sum(1 for i, item in enumerate(record['details'][0]['function_after']) if item['target']!=0 )
+        
+        print(has_function)
+
+def postprocess_code_blocks(list1, list2):
+    for i, block in enumerate(list2):
+        if '/*' in block['content'] and '*/' not in block['content']:
+            # find the next block that contains '*/'
+            for j in range(i+1, len(list2)):
+                if '*/' in list2[j]['content']:
+                    list2[i]['content'] += ''.join([block['content'] for block in list2[i+1:j+1]])
+                    list1[i]['content'] += ''.join([block['content'] for block in list1[i+1:j+1]])
+                    
+                    for k in range(i+1, j+1):
+                        list2.pop(k)
+                        list1.pop(k)
+                break
+    return list1, list2
+
 def one_zero_dataset(path):
     dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")
     new_dataset = DatasetDict()
@@ -206,6 +253,7 @@ def main(path):
                     code1 = i_detail['code_before']
                     code2 = i_detail['code']
                     code1_blocks, code2_blocks = compare_code_blocks(code1, code2)
+                    code1_blocks, code2_blocks = postprocess_code_blocks(code1_blocks, code2_blocks)
                     prompt = 'Determine whether the code is vulnerable or not.'
                     
                     # Process code1 (vulnerable version)
@@ -311,9 +359,8 @@ def reorg():
     dataset.save_to_disk('/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test')
     
 if __name__ == "__main__":
-    # path = '/project/flame/wyu3/PRM/reposvul_processed_dataset'
-    # main(path)
-    concat_eval_dataset()
+    path = '/project/flame/wyu3/PRM/reposvul_processed_dataset_merged'
+    main(path)
+    # concat_eval_dataset()
     # reorg()
-    # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
-    # one_zero_dataset(path)
+   

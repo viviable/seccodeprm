@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import transformers
 from accelerate import Accelerator
-from datasets import load_dataset, load_from_disk
+from datasets import load_dataset, load_from_disk   
 from torch.utils.data import DataLoader, DistributedSampler
 from tqdm import tqdm
 
@@ -88,15 +88,15 @@ def main(args):
     separator = args.separator
     model_path = args.model
     temperature = args.temperature
+    dataset_name = args.dataset_name
+    
 
     model_name = model_path.split('/')[-1]
 
     configs = {
-        'precise_test': 806,
+        dataset_name: 806,
     }
-    all_f1_scores = []
-    save_dir = f'outputs/{model_name}'
-    os.makedirs(save_dir, exist_ok=True)
+
 
     accelerator = Accelerator()
     print(f'Loading model from {model_path}')
@@ -106,13 +106,12 @@ def main(args):
     model = accelerator.prepare(model)
     model.eval()
 
-
     for config, num in configs.items():
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")["test"]
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero_dedup_test")
         # dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["validation"]
         dataset = load_dataset('vivi-yu/vul_code_precise')['test']
-        
+        dataset = dataset.select(range(100))
         print('total number of vulnerable', sum([0 in dataset[i]['labels'] for i in range(len(dataset))]))
         # train_dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero")["train"]
         # dataset = dataset.select(range(500))
@@ -158,7 +157,7 @@ def main(args):
             for i, score_id in enumerate(score_ids):
                 label_ = label[i]
                 prob = logits[i, score_id].softmax(dim=-1)  # (steps, 2)
-                score = prob[:, 1] - prob[:, 0]  # (steps,)
+                score = prob[:, 1] - prob[:, 0]  # (steps,)  whether the completion is safe
                 if criterion == 'softmax':
                     pred_or = ((-score / temperature).softmax(dim=-1) * score).sum()
                     if (label_ != -1 and pred_or <= 0) or (label_ == -1 and pred_or > 0):
@@ -229,6 +228,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
     parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps", "precise"], type=str, default="softmax")
+    parser.add_argument("-d", "--dataset_name", type=str, default="vul_code_precise")
     args = parser.parse_args()
 
     set_seed(42)

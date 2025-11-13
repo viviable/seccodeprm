@@ -124,8 +124,10 @@ def one_zero_dataset(path):
     new_dataset.save_to_disk(path)
 
 def load_data(split_name):
-    json_path = f'/sven/data_train_val/{split_name}'
+    json_path = f'/home/wyu3/workspace/sven/data_train_val/{split_name}'
     vul_list = [22, 78, 79, 89, 125, 190, 416, 476, 787]
+    # vul_list = [ 125, 190, 416, 476]
+    
     data = []
     for vul in vul_list:
         file_name = f'cwe-{vul:03d}.jsonl'
@@ -181,7 +183,6 @@ def main(path):
 
             source = 'SVEN'
             other_info = { k: data[k] for k in data.keys() if k not in ['func_src_before', 'func_src_after'] }
-            
             # Add both versions
             split_data.append({
                 'prompt': prompt,
@@ -189,7 +190,9 @@ def main(path):
                 'labels': labels1,
                 'source': source,
                 'other_info': other_info,
-                'index': index
+                'index': index,
+                'cwe': data['vul_type'],
+                'language': data['file_name'].split('.')[1],
             })
             split_data.append({
                 'prompt': prompt,
@@ -197,7 +200,9 @@ def main(path):
                 'labels': labels2,
                 'source': source,
                 'other_info': other_info,
-                'index': index
+                'index': index,
+                'cwe': data['vul_type'],
+                'language': data['file_name'].split('.')[1],
             })
         
         # Convert list to Dataset and add to DatasetDict
@@ -210,7 +215,5 @@ def main(path):
     
 
 if __name__ == "__main__":
-    path = './sven_processed_dataset'
+    path = '/project/flame/wyu3/PRM/sven_processed_dataset'
     main(path)
-    # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
-    # one_zero_dataset(path)

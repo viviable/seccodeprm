@@ -14,6 +14,12 @@ datasets = {
     "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
 }
 
+def safe_model_max_len(tokenizer, fallback=131072):
+    m = getattr(tokenizer, "model_max_length", None)
+    if m is None or (isinstance(m, int) and (m > 10**9 or m <= 0)) or m == float("inf"):
+        return fallback
+    return int(m)
+
 def extract_label(output):
     output = output.split("assistantfinal:")[-1].lower()
     if "yes" in output:
@@ -34,8 +40,15 @@ def main():
     model_name = "openai/gpt-oss-20b"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     llm = LLM(model=model_name, tensor_parallel_size=4)
-    sampling_params = SamplingParams(max_tokens=131072)
+    max_gen_tokens = 100
+    sampling_params = SamplingParams(max_tokens=max_gen_tokens) # max new tokens， it is a yes/no question.
     
+    model_ctx = safe_model_max_len(tokenizer)
+    safety_margin = 128  # template/special symbol margin
+    
+    # don't exceed model hard limit
+    max_input_tokens = max(model_ctx - max_gen_tokens - safety_margin, 100000)
+
     criteria = args.criteria
     
     for dataset_name in datasets:
@@ -48,10 +61,14 @@ def main():
             if criteria == "steps-level":
                 for i in range(len(data["completions"])):
                     prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
+                    if len(tokenizer(prompt)["input_ids"]) > max_input_tokens:
+                        continue
                     prompts.append(prompt)
                     labels.append(data["labels"][i])
             elif criteria == "sample-level":
                 prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
+                if len(tokenizer(prompt)["input_ids"]) > max_input_tokens:
+                    continue
                 prompts.append(prompt)
                 if 0 in data["labels"]:
                     labels.append(0)
@@ -69,10 +86,7 @@ def main():
             )
             for message in messages
         ]
-        for text in texts:
-            if len(tokenizer(text)["input_ids"]) > 100000:
-                texts.remove(text)
-                
+        print(f"len of texts: {len(texts)}")
 
         output = llm.generate(texts, sampling_params)
         answer_medium = [i.outputs[0].text for i in output]

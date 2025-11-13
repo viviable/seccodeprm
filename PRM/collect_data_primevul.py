@@ -209,16 +209,23 @@ def main_paired(path):
                     labels2.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
 
             source = 'PrimeVul'
-            other_info_vul = { k: vul_data[k] for k in vul_data.keys() if k not in ['target'] }
-            other_info_safe = { k: safe_data[k] for k in safe_data.keys() if k not in ['target'] }
+            other_info_vul = { k: vul_data[k] for k in vul_data.keys() if k not in ['target', 'cwe', 'file_name'] }
+            other_info_safe = { k: safe_data[k] for k in safe_data.keys() if k not in ['target', 'cwe', 'file_name'] }
             # other_info_vul['pair_id'] = index
             # other_info_safe['pair_id'] = index
             # Add both versions
+            cwe = vul_data['cwe'][0].lower()
+            try:
+                language = vul_data['file_name'].split('.')[1]
+            except:
+                language = 'unknown'
             split_data.append({
                 'prompt': prompt.format(function_name=data['project']),
                 'completions': completion1,
                 'labels': labels1,
                 'source': source,
+                'cwe': cwe,
+                'language': language,
                 'other_info': other_info_vul,
                 'index': index
             })
@@ -227,8 +234,10 @@ def main_paired(path):
                 'completions': completion2,
                 'labels': labels2,
                 'source': source,
+                'cwe': cwe,
+                'language': language,
                 'other_info': other_info_safe,
-                'index': index
+                'index': index,
             })
             
         # Convert list to Dataset and add to DatasetDict
@@ -293,9 +302,9 @@ def main_unpaired(path):
     vul_dataset.save_to_disk(path)
 
 if __name__ == "__main__":
-    path = '/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired'
-    main_unpaired(path)
-    # path = './primevul_processed_dataset_paired'
-    # main_paired(path)
+    # path = '/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired'
+    # main_unpaired(path)
+    path = '/project/flame/wyu3/PRM/primevul_processed_dataset_paired'
+    main_paired(path)
     # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
     # one_zero_dataset(path)

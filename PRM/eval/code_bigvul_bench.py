@@ -229,6 +229,6 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--dataset_name", choices=["bigvul", "bigvul_one_zero", "bigvul_dedup", "bigvul_one_zero_dedup"], type=str, default="bigvul")
     args = parser.parse_args()
 
-    set_seed(42)
+    set_seed(2026)
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     main(args)

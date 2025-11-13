@@ -48,11 +48,11 @@ mkdir -p "${LOG_DIR}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
 declare -a TASK_MATRIX=(
-  "bigvul_dedup|${NPROC}|${PORT}|code_bigvul_bench.py|-b 1 -d bigvul_dedup"
-  "sven_val|${NPROC}|${PORT}|code_sven_bench.py|-d sven_val -t 0.1 -c softmax"
+  # "bigvul_dedup|${NPROC}|${PORT}|code_bigvul_bench.py|-b 1 -d bigvul_dedup"
+  "sven_val|${NPROC}|${PORT}|code_sven_bench.py|-d sven_val -t 0.01 -c softmax"
   "precisebugs|${NPROC}|${PORT}|code_precise_bench.py|-b 1"
-  "primevul_paired|${NPROC}|${PORT}|code_primevul_bench.py|-b 1 -d primevul_test_paired -c allsteps"
-  "primevul_unpaired|${NPROC}|${PORT}|code_primevul_bench.py|-b 1 -d primevul_test_unpaired"
+  "primevul_paired|${NPROC}|${PORT}|code_primevul_bench.py|-b 1 -d primevul_test_paired"
+  # "primevul_unpaired|${NPROC}|${PORT}|code_primevul_bench.py|-b 1 -d primevul_test_unpaired"
   "reposvul|${NPROC}|${PORT}|code_repos_bench.py|-b 1 -d reposvul_test"
 )
 

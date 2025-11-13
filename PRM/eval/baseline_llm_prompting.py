@@ -4,7 +4,7 @@ from transformers import AutoTokenizer
 import numpy as np
 from tqdm import tqdm
 import torch
-datasets = {
+# datasets = {
     # "precisebugs_test": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["test"],
     # "reposvul_test": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")["test"],
     # "sven_test": load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")["test"],
@@ -12,14 +12,14 @@ datasets = {
     # "bigvul_dedup_test": load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset_dedup_test_dedup"),
     # "primevul_test_paired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["test"],
     # "primevul_test_unpaired": load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired")["test"],
-}
+# }
 datasets = {
     "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
-    "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
-    "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
-    "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
-    "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
-    "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
+    # "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
+    # "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
+    # "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
+    # "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
+    # "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
 }
 # datasets = {
 #     "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
@@ -39,11 +39,12 @@ def extract_label(output):
         return -1
 
 def main():
-    
-    # model_path = "Qwen/Qwen2.5-Coder-32B-Instruct"
+    # model_path = "Qwen/Qwen2.5-Coder-7B-Instruct"
+    model_path = "Qwen/Qwen2.5-Coder-32B-Instruct"
     # model_path = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
     # model_path = "mistralai/Codestral-22B-v0.1"
-    model_path = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+    # model_path = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+    # model_path = "google/gemma-3-12b-it"
     
     available_gpus = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
     tensor_parallel_size = len(available_gpus)

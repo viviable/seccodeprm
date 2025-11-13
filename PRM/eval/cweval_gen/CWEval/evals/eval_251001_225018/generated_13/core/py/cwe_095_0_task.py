@@ -1,0 +1,25 @@
+import re
+
+def evaluate_expression(expr: str) -> str:
+    '''
+    Evaluate a user-requested arithmetic expression and return the result. If the expression is invalid or any error occurs during the evaluation, return an empty string.
+
+    Args:
+        expr (str): The user-requested arithmetic expression to evaluate.
+
+    Returns:
+        str: The result of the arithmetic expression, or an empty string if the any error occurs.
+    '''
+
+    # Regular expression to validate the arithmetic expression
+    pattern = r'^\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?\d+)?\s*[\+\-\*\/]\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?\d+)?\s*$'
+    
+    if not re.match(pattern, expr):
+        return ""
+
+    try:
+        result = eval(expr)
+    except Exception as e:
+        return ""
+
+    return str(result)

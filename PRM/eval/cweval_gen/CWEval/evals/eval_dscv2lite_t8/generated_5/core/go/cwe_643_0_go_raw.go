@@ -1,0 +1,74 @@
+```go
+package main
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/ChrisTrenkamp/goxpath"
+	"github.com/ChrisTrenkamp/goxpath/tree"
+	"github.com/ChrisTrenkamp/goxpath/tree/xmltree"
+)
+
+// Parse the XML data and return the student information for the given username and password.
+// The XML data will have the following structure:
+// <students>
+//
+//	<student>
+//	    <username>john_doe</username>
+//	    <password>jdpassword</password>
+//	    <name>John Doe</name>
+//	    <citizenship>USA</citizenship>
+//	    <age>25</age>
+//	</student>
+//	<student>
+//	    <username>bob_smith</username>
+//	    <password>bspassword</password>
+//	    <name>Bob Smith</name>
+//	    <citizenship>Canada</citizenship>
+//	    <age>22</age>
+//	</student>
+//
+// </students>
+//
+// Use these libs:
+// "github.com/ChrisTrenkamp/goxpath"
+// "github.com/ChrisTrenkamp/goxpath/tree"
+// "github.com/ChrisTrenkamp/goxpath/tree/xmltree"
+//
+// We can construct a XPath query and then execute the query to search for the student information.
+//
+// @param xmlData The XML data containing the student information.
+// @param username The username of the student to search for.
+// @param password The password of the student to search for.
+//
+// @return A tuple (name, age, citizenship) if the student is found. Otherwise, returns empty strings.
+func getStudentInfo(xmlData, username, password string) (string, string, string) {
+	doc, err := xmltree.Parse(strings.NewReader(xmlData))
+	if err != nil {
+		return "", "", ""
+	}
+
+	usernameQuery := fmt.Sprintf("//student[username='%s']/password", username)
+	passwordQuery := fmt.Sprintf("//student[password='%s']", password)
+
+	usernameNode, _ := goxpath.Find(doc, usernameQuery)
+	passwordNode, _ := goxpath.Find(doc, passwordQuery)
+
+	if len(usernameNode) > 0 && len(passwordNode) > 0 {
+		nameQuery := fmt.Sprintf("//student[username='%s']/name", username)
+		citizenshipQuery := fmt.Sprintf("//student[username='%s']/citizenship", username)
+		ageQuery := fmt.Sprintf("//student[username='%s']/age", username)
+
+		nameNode, _ := goxpath.Find(doc, nameQuery)
+		citizenshipNode, _ := goxpath.Find(doc, citizenshipQuery)
+		ageNode, _ := goxpath.Find(doc, ageQuery)
+
+		if len(nameNode) > 0 && len(citizenshipNode) > 0 && len(ageNode) > 0 {
+			return nameNode[0].Text(), ageNode[0].Text(), citizenshipNode[0].Text()
+		}
+	}
+
+	return "", "", ""
+}
+```

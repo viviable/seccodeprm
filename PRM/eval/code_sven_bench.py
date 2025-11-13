@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import transformers
 from accelerate import Accelerator
-from datasets import load_dataset, load_from_disk, Dataset
+from datasets import load_dataset, load_from_disk
 from torch.utils.data import DataLoader, DistributedSampler
 from tqdm import tqdm
 
@@ -51,7 +51,6 @@ def collate_fn(batch, tokenizer, separator = '\n\n'):
         labels=labels,
         score_ids=score_ids
     )
-    
     
 def find_first_zero(tensor):
     zeros = (tensor == 0).nonzero()
