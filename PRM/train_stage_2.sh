@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_reposvul_3epoch_merged \
-    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset_merged" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage2/coder_s2_repos_func_3epoch_func_2000 \
+    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset_func" \
     --fix_llm False \
     --num_train_epochs 1 \
     --learning_rate 1e-6 \
-    --run_name coder_s2_all_31340_froms1_1epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/coder_s2_all_31340_froms1_2epoch \
+    --run_name coder_s2_repos_func_2epoch \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/coder_s2_repos_func_2epoch \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \

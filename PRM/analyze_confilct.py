@@ -1,5 +1,5 @@
 import json
-from datasets import load_from_disk
+from datasets import load_dataset
 
 def find_conflicting_labels(dataset1, dataset2):
     """
@@ -18,8 +18,8 @@ def find_conflicting_labels(dataset1, dataset2):
     dataset2_steps = {}
     for data2_idx, data2 in enumerate(dataset2):
         for step_idx, (step, label) in enumerate(zip(data2['completions'], data2['labels'])):
-            if step == '':
-                continue
+            # if step == '' or len(step) < 20:
+            #     continue
             if step not in dataset2_steps:
                 dataset2_steps[step] = []
             dataset2_steps[step].append({
@@ -54,22 +54,37 @@ def find_conflicting_labels(dataset1, dataset2):
 
 
 def save_conflicts(conflicts):
-    with open("conflicts.jsonl", "w") as f:
+    with open("conflicts_more_concat.jsonl", "w") as f:
         for conflict in conflicts:
             f.write(json.dumps(conflict) + "\n")
 
 
+def merge_datasets(dataset):
+    # for data in dataset:
+    #     data['completions'] = ['\n\n'.join(data['completions'])]
+    #     data['labels'] = [0 if 0 in data['labels'] else 1]
+    return dataset.map(
+        lambda ex: {
+            "completions": ['\n\n'.join(ex["completions"])],
+            "labels": [0 if 0 in ex["labels"] else 1],
+        }
+    )
 # Example usage:
 if __name__ == "__main__":
     # Example dataset 1
-    dataset1 = load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["train"]
-    dataset2 = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")["train"]
-    
+    # dataset1 = load_from_disk("/project/flame/wyu3/PRM/primevul_processed_dataset")["train"]
+    # dataset2 = load_from_disk("/project/flame/wyu3/PRM/sven_processed_dataset")["train"]
+    dataset1 = load_dataset("vivi-yu/primevul_processed_dataset")["train"]
+    dataset2 = load_dataset("vivi-yu/sven_processed_dataset")["train"]
+    print('dataset loaded')
+    ## sample level
+    dataset1 = merge_datasets(dataset1)
+    dataset2 = merge_datasets(dataset2)
     # Find conflicts
     conflicts = find_conflicting_labels(dataset1, dataset2)
     print(f"\nSummary: {len(conflicts)} total conflicts found")
     
     # Print results
-    save_conflicts(conflicts[:1000])
+    save_conflicts(conflicts[:5000])
     
     # You can also get a summary

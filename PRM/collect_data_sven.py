@@ -124,7 +124,7 @@ def one_zero_dataset(path):
     new_dataset.save_to_disk(path)
 
 def load_data(split_name):
-    json_path = f'/home/wyu3/workspace/sven/data_train_val/{split_name}'
+    json_path = f'/project/flame/wyu3/PRM/sven_git/sven/data_train_val/{split_name}'
     vul_list = [22, 78, 79, 89, 125, 190, 416, 476, 787]
     # vul_list = [ 125, 190, 416, 476]
     

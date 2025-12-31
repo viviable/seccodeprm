@@ -8,6 +8,9 @@ import gc
 import numpy as np
 import torch
 import transformers
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from accelerate import Accelerator
 from datasets import load_dataset, load_from_disk, Dataset
 from torch.utils.data import DataLoader, DistributedSampler
@@ -82,11 +85,47 @@ def clear_cache():
     torch.cuda.empty_cache()
     gc.collect()
 
+def plot_accuracy_histograms(acc_hist, output_prefix="acc_hist"):
+    """Draw and save accuracy/count histograms grouped by token length."""
+    if not acc_hist:
+        print("No accuracy data to plot.")
+        return
+
+    token_lengths = np.array([t[0] for t in acc_hist])
+    matches = np.array([t[1] for t in acc_hist], dtype=float)
+
+    unique_lengths, inverse = np.unique(token_lengths, return_inverse=True)
+    total_counts = np.bincount(inverse)
+    total_matches = np.bincount(inverse, weights=matches)
+    acc_by_length = total_matches / total_counts
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(unique_lengths, acc_by_length, width=1.0, align='center')
+    ax.set_xlabel("Token length")
+    ax.set_ylabel("Accuracy")
+    ax.set_title("Accuracy by token length")
+    ax.grid(True, axis='y', linestyle='--', alpha=0.4)
+    plt.tight_layout()
+    plt.savefig(f"{output_prefix}_acc.png")
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(unique_lengths, total_counts, width=1.0, align='center', color="#6c8cd5")
+    ax.set_xlabel("Token length")
+    ax.set_ylabel("Number of examples")
+    ax.set_title("Example counts by token length")
+    ax.grid(True, axis='y', linestyle='--', alpha=0.4)
+    plt.tight_layout()
+    plt.savefig(f"{output_prefix}_counts.png")
+    plt.close(fig)
+
 def load_data(dataset_name):
     if dataset_name == "reposvul_test":
         dataset = load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")['test']
     elif dataset_name == "reposvul_test_concat":
         dataset = load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_concat")['test']
+    elif dataset_name == "reposvul_test_func":
+        dataset = load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_func")['test']
     else:
         raise ValueError(f"Invalid dataset name: {dataset_name}")
     
@@ -190,6 +229,17 @@ def main(args):
         
         accelerator.wait_for_everyone()
         gathered_data = gather_objects(res_data, accelerator)
+        
+        acc_hist = []
+        for e in gathered_data:
+            e['token_length'] = e['input_ids'].size(-1)
+            acc_hist.append((e['token_length'], e['match']))
+        
+        if accelerator.is_main_process:
+            plot_accuracy_histograms(
+                acc_hist,
+                output_prefix=f"{dataset_name}_{criterion}"
+            )
 
         if accelerator.is_main_process and criterion != 'allsteps':
             data1 = [e for e in gathered_data if 0 in e['labels']]  # vulnerable
@@ -243,7 +293,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", type=str)
-    parser.add_argument("-d", "--dataset_name", choices=["reposvul_test", "reposvul_test_concat"], type=str, default="reposvul_test")
+    parser.add_argument("-d", "--dataset_name", choices=["reposvul_test", "reposvul_test_concat", "reposvul_test_func"], type=str, default="reposvul_test")
     parser.add_argument("-b", "--batch_size", type=int, default=1)
     parser.add_argument("-w", "--num_of_workers", type=int, default=4)
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")

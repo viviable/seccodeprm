@@ -49,9 +49,14 @@ bash ./PRM/eval/moe.sh
 ```python
 python ./PRM/eval/ranking_code_bon_sven.py
 ```
-For CWEval, please refer to https://github.com/Co1lin/CWEval and note that they operates in docker.
+For CWEval, please refer to https://github.com/Co1lin/CWEval and note that they operate in docker.
+refer to https://github.com/Co1lin/CWEval?tab=readme-ov-file#2-generate-llm-responses for generating the LLM responses, set -n as 10, 30, or 50, then use the following for BoN to get safer candidates.
+```python
+python ./PRM/eval/ranking_code_bon_cweval.py --gen_dir <your-gen-dir>
+```
 
 For HumanEval, please refer to https://github.com/bigcode-project/bigcodebench for installation.
 
 
-## acknowledgement
+## Acknowledgement
+

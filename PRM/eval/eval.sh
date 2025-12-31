@@ -27,7 +27,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # reposvul
 # nohup torchrun --nproc_per_node=4 --master_port 46005 code_repos_bench.py -m Qwen/Qwen2.5-Math-PRM-7B -b 1 -d reposvul_test -t 0.1 > reposvul_baseline_qwen_7b.log 2>&1 &
-nohup torchrun --nproc_per_node=4 --master_port 46005 code_repos_bench.py -m /project/flame/wyu3/PRM/output/stage1/coder_s1_reposvul_3epoch_merged -b 1 -d reposvul_test  -t 0.1 > reposvul_s1_reposvul_3epoch_merged_t0.1.log 2>&1 &
+nohup torchrun --nproc_per_node=4 --master_port 46005 code_repos_bench.py -m  /project/flame/wyu3/PRM/output/stage2/coder_s2_repos_func_2epoch -b 1 -d reposvul_test  -t 0.1 > reposvul_s2_text_hist_t0.1.log 2>&1 &
 
 ## moe
 # nohup torchrun --nproc_per_node=4 --master_port 46005 moe_code_bench.py  -d precisebugs_test -t 0.1 > moe_precisebugs.log 2>&1 &

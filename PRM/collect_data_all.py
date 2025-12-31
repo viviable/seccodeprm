@@ -91,15 +91,20 @@ def concatenate_splits(datasets: Iterable[DatasetDict]) -> DatasetDict:
 
 
 def main() -> None:
+    # source_paths = [
+    #     "/project/flame/wyu3/PRM/reposvul_processed_dataset",
+    #     # "/project/flame/wyu3/PRM/bigvul_processed_dataset",
+    #     "/project/flame/wyu3/PRM/precisebugs_processed_dataset",
+    #     "/project/flame/wyu3/PRM/primevul_processed_dataset",
+    #     "/project/flame/wyu3/PRM/sven_processed_dataset",
+    # ]
     source_paths = [
-        "/project/flame/wyu3/PRM/reposvul_processed_dataset",
-        # "/project/flame/wyu3/PRM/bigvul_processed_dataset",
-        "/project/flame/wyu3/PRM/precisebugs_processed_dataset",
-        "/project/flame/wyu3/PRM/primevul_processed_dataset",
-        "/project/flame/wyu3/PRM/sven_processed_dataset",
+        "/project/flame/wyu3/PRM/bigvul_processed_dataset",
+        
     ]
     # repli_num = [5, 1, 30, 600]
-    repli_num = [3, 1, 3, 40]
+    # repli_num = [3, 1, 3, 40]
+    repli_num = [1]
     # repli_num = [3, 1, 10, 40]
     
     
@@ -107,11 +112,25 @@ def main() -> None:
     datasets = []
     for path, num in zip(source_paths, repli_num):
         for _ in range(num):
-            datasets.append(load_dataset_dict(path))
+            # datasets.append(load_dataset_dict(path))
+            datasets.append(load_dataset("vivi-yu/reposvul_processed_dataset"))
     merged = concatenate_splits(datasets)
     output_dir = Path("/project/flame/wyu3/PRM/all_processed_dataset_31340_pure")
     merged.save_to_disk(output_dir.as_posix())
 
+
+def clean_data(dataset: DatasetDict) -> DatasetDict:
+    from datasets import load_dataset
+    dataset = load_dataset('vivi-yu/reposvul_processed_dataset')
+    before = ["}", "\tint i;", "\t}", "#endif", "\t}", "\treturn 0;\n}", "return 0;\n}", "\t\treturn 0;", "\treturn 0;", "\treturn true;", "*/", "\treturn;", "\treturn ret;", "\treturn 0;\n\t}","\t\t}", "return 1;","break;", "continue;",  "return NULL;", ]
+    after = ["\t\telse", "#else", "out:", "int i;", ]
+    remove = [ "\n"]
+    for split in dataset.keys():
+        for data in dataset[split]:
+            completions = data['completions']
+            for step in completions:
+                
+    return dataset
 
 if __name__ == "__main__":
     main()

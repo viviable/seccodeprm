@@ -1,8 +1,14 @@
-from datasets import load_dataset, load_from_disk
-from transformers import AutoTokenizer
-
 import json
 import re
+from collections import Counter
+from pathlib import Path
+
+from datasets import load_dataset, load_from_disk
+from transformers import AutoTokenizer
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 ## for test
 # datasets = {
 #     "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
@@ -14,15 +20,26 @@ import re
 # }
 # for train
 datasets = {
-    # "precisebugs_train": load_dataset("vivi-yu/vul_code_precise")["train"], 
-    "precisebugs_train": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["train"], 
-    "reposvul_train_func": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_func")["train"],
+    # "all_train": load_dataset("vivi-yu/vul_code_precise")["train"],
+    "precisebugs_train": load_dataset("vivi-yu/vul_code_precise")["train"], 
+    # "precisebugs_train": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["train"], 
+    # "reposvul_train_func": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_func")["train"],
     
     "reposvul_train": load_dataset("vivi-yu/reposvul_processed_dataset")["train"],
     "sven_train": load_dataset("vivi-yu/vul_code_sven")["train"],
-    "bigvul_train": load_dataset("vivi-yu/bigvul_processed")["train"],
+    # "bigvul_train": load_dataset("vivi-yu/bigvul_processed")["train"],
     "primevul_train_paired": load_dataset("vivi-yu/primevul_processed_dataset")["train"],
-    "primevul_train_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["train"],
+    # "primevul_train_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["train"],
+}
+
+test_datasets = {
+    "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
+    # "reposvul_test_func": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_func")["test"],
+    "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
+    "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
+    # "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
+    "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
+    # "primevul_test_unpaired": load_dataset("vivi-yu/primevul_processed_dataset_unpaired")["test"],
 }
 
 
@@ -100,6 +117,108 @@ def extract_language_from_file_name(file_name):
     else:
         print(f"unknown language: {file_name}")
         return None
+
+
+def collect_cwe_and_language_counts(dataset_name):
+    """Collect CWE and language counts for the given dataset name."""
+    dataset = datasets.get(dataset_name) or test_datasets.get(dataset_name)
+    if dataset is None:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
+
+    cwe_counter = Counter()
+    language_counter = Counter()
+
+    for example in dataset:
+        if "precisebugs" in dataset_name or "reposvul" in dataset_name:
+            cwe = example.get("cwe")
+            language = example.get("language")
+        elif "sven" in dataset_name:
+            info = example.get("other_info", {})
+            cwe = info.get("vul_type")
+            language = info.get("lang") or info.get("language")
+        elif "bigvul" in dataset_name:
+            info = example.get("other_info", {})
+            cwe = info.get("CWE ID") or info.get("cwe")
+            language = info.get("lang") or info.get("language")
+        elif "primevul" in dataset_name:
+            info = example.get("other_info", {})
+            cwes = info.get("cwe") or []
+            for cwe_item in cwes:
+                if cwe_item:
+                    cwe_counter[cwe_item] += 1
+            file_name = info.get("file_name", "")
+            language = extract_language_from_file_name(file_name)
+            cwe = None
+        else:
+            cwe = None
+            language = None
+
+        if cwe:
+            cwe_counter[cwe] += 1
+        if language:
+            language_counter[language] += 1
+
+    return cwe_counter, language_counter
+
+
+def _plot_bar(counter, title, output_path, xlabel="Number of examples", max_items=12):
+    """Draw a horizontal bar chart from a Counter and save it."""
+    if not counter:
+        print(f"No data to plot for {title}")
+        return None
+
+    top_items = counter.most_common(max_items)
+    labels = [item[0] if item[0] else "Unknown" for item in top_items]
+    counts = [item[1] for item in top_items]
+    y_pos = np.arange(len(labels))
+
+    fig_height = max(3, len(labels) * 0.45)
+    fig, ax = plt.subplots(figsize=(8, fig_height))
+    colors = plt.cm.Paired(np.linspace(0, 1, len(labels)))
+
+    ax.barh(y_pos, counts, color=colors, edgecolor="white")
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels([f"{label} ({count})" for label, count in top_items])
+    ax.invert_yaxis()
+    ax.set_xlabel(xlabel)
+    ax.set_title(title)
+
+    max_count = max(counts)
+    for idx, count in enumerate(counts):
+        ax.text(count + max_count * 0.01, idx, str(count), va="center", fontsize=9)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=200)
+    plt.close(fig)
+    print(f"Saved bar chart to {output_path}")
+    return output_path
+
+
+def plot_language_and_cwe_bars(dataset_name, max_items=12, save_dir="."):
+    """
+    Draw two bar figures (language and CWE) for a dataset.
+
+    Args:
+        dataset_name: Key in datasets or test_datasets.
+        max_items: Only plot the top-N most common items.
+        save_dir: Directory to save the figures.
+    """
+    cwe_counts, language_counts = collect_cwe_and_language_counts(dataset_name)
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    _plot_bar(
+        language_counts,
+        f"{dataset_name} language distribution",
+        save_path / f"{dataset_name}_language_bar.png",
+        max_items=max_items,
+    )
+    _plot_bar(
+        cwe_counts,
+        f"{dataset_name} CWE distribution",
+        save_path / f"{dataset_name}_cwe_bar.png",
+        max_items=max_items,
+    )
     
 def get_dataset_stat(dataset_name):
     dataset = datasets[dataset_name]
@@ -185,15 +304,56 @@ def get_dataset_stat(dataset_name):
     print(f"vul cwes: {(vul_cwes)}")
     print(f"vul language types: {(vul_language_types)}")
     
+
+def _token_lengths(dataset, tokenizer, separator="\n\n"):
+    """Return token lengths for all examples using the given tokenizer."""
+    return [
+        len(tokenizer.encode(separator.join(example["completions"]), add_special_tokens=False))
+        for example in dataset
+    ]
+
+
+def analyze_train_test_token_lengths(train_name, test_name, separator="\n\n", tokenizer_name="Qwen/Qwen2.5-Coder-7B-Instruct"):
+    """Plot and report token length distributions for train/test splits."""
+    if train_name not in datasets:
+        raise ValueError(f"Unknown train dataset: {train_name}")
+    if test_name not in test_datasets:
+        raise ValueError(f"Unknown test dataset: {test_name}")
+
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+    train_lengths = _token_lengths(datasets[train_name], tokenizer, separator)
+    test_lengths = _token_lengths(test_datasets[test_name], tokenizer, separator)
+
+    print(f"{train_name} token length avg: {np.mean(train_lengths):.2f}, median: {np.median(train_lengths):.2f}, max: {np.max(train_lengths)}")
+    print(f"{test_name} token length avg: {np.mean(test_lengths):.2f}, median: {np.median(test_lengths):.2f}, max: {np.max(test_lengths)}")
+
+    bins = 60
+    max_len = max(np.max(train_lengths), np.max(test_lengths))
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.hist(train_lengths, bins=bins, range=(0, max_len), alpha=0.6, label="train", color="#6c8cd5")
+    ax.hist(test_lengths, bins=bins, range=(0, max_len), alpha=0.6, label="test", color="#d58c6c")
+    ax.set_yscale("log")
+    ax.set_xlabel("Token length")
+    ax.set_ylabel("Number of examples (log scale)")
+    ax.set_title(f"Token length distribution: {train_name} vs {test_name}")
+    ax.legend()
+    ax.grid(True, axis="y", linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    output_path = f"{train_name}_vs_{test_name}_token_lengths.png"
+    plt.savefig(output_path)
+    plt.close(fig)
+    print(f"Saved histogram to {output_path}")
     
     
 if __name__ == "__main__":
     # get_dataset_stat("precisebugs_train")
-    get_dataset_stat("reposvul_train_func")
+    # get_dataset_stat("reposvul_train_func")
+    # analyze_train_test_token_lengths("reposvul_train", "reposvul_test")
     # get_dataset_stat("reposvul_train")
     # get_dataset_stat("sven_train")
     # get_dataset_stat("bigvul_train")
     # get_dataset_stat("primevul_train_paired")
     # get_dataset_stat("primevul_train_unpaired")
+    plot_language_and_cwe_bars("reposvul_train")
     
     

@@ -146,6 +146,8 @@ def main(path):
         
         for index, data in enumerate(tqdm(dataset, desc=f"Processing {split_name}")):
             # if data['file_name'].endswith('.py'):
+            if data['type'] != 'CWE-639':
+                continue
             #     continue
             for i in range(len(data['buggy_code'])):
             
@@ -209,6 +211,8 @@ def main(path):
                     'language': language,
                     'cwe': data['type'].lower(),
                 })
+                import pdb; pdb.set_trace()
+                print(labels1)
             
         # Convert list to Dataset and add to DatasetDict
         total_number = len(split_data)
@@ -231,3 +235,5 @@ if __name__ == "__main__":
     main(path)
     # path = '/project/flame/wyu3/PRM/bigvul_processed_dataset_one_zero'
     # one_zero_dataset(path)
+    
+    
