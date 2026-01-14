@@ -1,6 +1,7 @@
 from datasets import load_dataset, DatasetDict, Dataset, load_from_disk
 from tqdm import tqdm
 import json
+import re
 
 from difflib import SequenceMatcher
 from typing import List, Tuple
@@ -213,103 +214,63 @@ def load_data(language_name):
     dataset = Dataset.from_list(dataset)
     return dataset
 
-def main(path):
-    ## 
-    # Create DatasetDict once to hold all splits
-    vul_dataset = DatasetDict()
-    
-    # Process each split
-    language_name = ['c', 'cpp', 'java', 'python' ] #
-    train_data = []
-    test_data = [] 
-    for split_name in language_name:
-        print(f"Processing {split_name} split...")
-        
-        split_data = []
-        
-        dataset = load_data(split_name)
-        for index, data in enumerate(tqdm(dataset, desc=f"Processing {split_name}")):
-            detail_info= json.loads(data['detail_info'])
-            for i, i_detail in detail_info.items():
-                target = i_detail.get('target')
-                if target == 0 or target == -1:
-                    code = i_detail['code']
-                    code_before = i_detail['code_before']
-                    completions = code.split('\n\n')
-                    prompt = 'Determine whether the code is vulnerable or not.'
-                    labels = len(completions)*[1]
-                    source = 'REPOSVUL'
-                    # other_info = { k: data[k] for k in data.keys() }
-                    
-                    split_data.append({
-                        'prompt': prompt,
-                        'completions': completions,
-                        'labels': labels,
-                        'source': source,
-                        # 'other_info': other_info,
-                        'index': index
-                    })
-                elif target == 1:
-                    code1 = i_detail['code_before']
-                    code2 = i_detail['code']
-                    code1_blocks, code2_blocks = compare_code_blocks(code1, code2)
-                    code1_blocks, code2_blocks = postprocess_code_blocks(code1_blocks, code2_blocks)
-                    prompt = 'Determine whether the code is vulnerable or not.'
-                    
-                    # Process code1 (vulnerable version)
-                    completion1 = []
-                    labels1 = []
-                    for block in code1_blocks:
-                        if block['type'] == 'diff':
-                            completion1.extend(block['content'].split('\n\n'))
-                            labels1.extend([0] * len(block['content'].split('\n\n')))  # 0 = vulnerable/bad
-                        else:
-                            completion1.extend(block['content'].split('\n\n'))
-                            labels1.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
-                    
-                    # Process code2 (fixed version)
-                    completion2 = []
-                    labels2 = []
-                    for block in code2_blocks:
-                        if block['type'] == 'diff':
-                            completion2.extend(block['content'].split('\n\n'))
-                            labels2.extend([1] * len(block['content'].split('\n\n')))
-                        else:
-                            completion2.extend(block['content'].split('\n\n'))
-                            labels2.extend([1] * len(block['content'].split('\n\n')))  # 1 = safe/good
+def extract_function_name_from_block(block):
+    python_def = re.search(r'^\s*def\s+([A-Za-z_]\w*)\s*\(', block, re.MULTILINE)
+    if python_def:
+        return python_def.group(1)
 
-                    source = 'REPOSVUL'
-                    # other_info = { k: data[k] for k in data.keys() }
-                    
-                    # Add both versions
-                    split_data.append({
-                        'prompt': prompt,
-                        'completions': completion1,
-                        'labels': labels1,
-                        'source': source,
-                        # 'other_info': other_info,
-                        'index': index
-                    })
-                    split_data.append({
-                        'prompt': prompt,
-                        'completions': completion2,
-                        'labels': labels2,
-                        'source': source,
-                        # 'other_info': other_info,
-                        'index': index
-                    })
-        
-        # Convert list to Dataset and add to DatasetDict
-        number = len(split_data)
-        train_data.extend(split_data[:int(number*0.8)])
-        test_data.extend(split_data[int(number*0.8):])
-    vul_dataset['train'] = Dataset.from_list(train_data)
-    vul_dataset['test'] = Dataset.from_list(test_data)
-    print(f"Completed {split_name} split: {len(train_data)} examples")
-    print(f"Completed {split_name} test split: {len(test_data)} examples")
+    c_like_def = re.search(
+        r'^\s*(?:[\w:\<\>\~\*&]+\s+)+([A-Za-z_]\w*)\s*\([^;]*\)\s*\{',
+        block,
+        re.MULTILINE,
+    )
+    if c_like_def:
+        return c_like_def.group(1)
+
+    java_like_def = re.search(
+        r'^\s*(?:public|private|protected|static|final|native|synchronized|abstract|'
+        r'transient|strictfp|\s)+\s*([A-Za-z_]\w*)\s*\([^;]*\)\s*\{',
+        block,
+        re.MULTILINE,
+    )
+    if java_like_def:
+        return java_like_def.group(1)
+
+    return None
+
+
+def find_step_function_names(step_blocks):
+    results = []
+    for step, block in step_blocks:
+        function_name = extract_function_name_from_block(block)
+        results.append({
+            'step': step,
+            'function_name': function_name,
+            'completion': block,
+        })
+    return results
+
+
+def importance_score(completions, labels):
+    zero_label_blocks = []
+    for i, (completion, label) in enumerate(zip(completions, labels)):
+        if label == 0 and completion != '':
+            zero_label_blocks.append((i, completion))
+
+    if not zero_label_blocks:
+        return []
+
+    return find_step_function_names(zero_label_blocks)
+
+def relabel_dataset(dataset_train):
+    for item in dataset_train:
+        completions = item['completions']
+        labels = item['labels']
+        for i, (completion, label) in enumerate(zip(completions, labels)):
+           label = importance_score(completion, label)
+           item['labels'][i] = label
     
-    # Save all splits together as one DatasetDict (most efficient for datasets library)
-    vul_dataset.save_to_disk(path)
+    return item
     
 def concat_eval_dataset():
     data_path = '/project/flame/wyu3/PRM/reposvul_processed_dataset'
@@ -359,8 +320,15 @@ def reorg():
     dataset.save_to_disk('/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test')
     
 if __name__ == "__main__":
-    path = '/project/flame/wyu3/PRM/reposvul_processed_dataset_merged'
-    main(path)
+    path = 'vivi-yu/reposvul_processed_dataset'
+    old_dataset = load_dataset(path)
+    relabel_dataset(old_dataset['train'])
+    new_dataset = DatasetDict({
+        'train': relabel_dataset(old_dataset['train']),
+        'test': old_dataset['test']
+    })
+    new_dataset.save_to_disk(path+'_relabeled')
+    # main(path)
     # concat_eval_dataset()
     # reorg()
    

@@ -54,10 +54,10 @@ def make_supervised_data_module(data_args) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     assert data_args.train_data_path is not None
     # if 'bigvul' in data_args.train_data_path or 'precise' in data_args.train_data_path or 'sven' in data_args.train_data_path or 'primevul' in data_args.train_data_path:
-    train_dataset = load_from_disk(data_args.train_data_path)['train']
-    eval_dataset = load_from_disk(data_args.train_data_path)['test']
-    # train_dataset = load_dataset(data_args.train_data_path, split="train")
-    # eval_dataset = load_dataset(data_args.train_data_path, split="test")
+    # train_dataset = load_from_disk(data_args.train_data_path)['train']
+    # eval_dataset = load_from_disk(data_args.train_data_path)['test']
+    train_dataset = load_dataset(data_args.train_data_path, split="train")
+    eval_dataset = load_dataset(data_args.train_data_path, split="test")
     # for faster loading
     if 'other_info' in train_dataset.column_names:
         train_dataset = train_dataset.remove_columns('other_info')

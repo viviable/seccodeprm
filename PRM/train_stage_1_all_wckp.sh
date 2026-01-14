@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/coder_s1_reposvul_3epoch_merged/checkpoint-297 \
-    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset_merged" \
+    --model_name_or_path Qwen/Qwen2.5-Coder-7B-Instruct \
+    --train_data_path "vivi-yu/vul_code_precise" \
     --fix_llm True \
     --num_train_epochs 3 \
     --learning_rate 1e-4 \
-    --run_name coder_s1_reposvul_6epoch_merged \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/coder_s1_reposvul_6epoch_merged \
+    --run_name precise_s1_qwen2.5_7b \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/precise_s1_coder \
     --bf16 True \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \

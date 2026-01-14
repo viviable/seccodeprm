@@ -8,6 +8,9 @@ import gc
 import numpy as np
 import torch
 import transformers
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from accelerate import Accelerator
 from datasets import load_dataset, load_from_disk
 from torch.utils.data import DataLoader, DistributedSampler
@@ -80,10 +83,102 @@ def set_seed(seed):
 def clear_cache():
     torch.cuda.empty_cache()
     gc.collect()
+    
 
+def plot_accuracy_histograms(acc_hist, dataset_name, output_prefix="acc_hist"):
+    """Draw and save accuracy/count histograms grouped by token length."""
+    if not acc_hist:
+        print("No accuracy data to plot.")
+        return
+
+    token_lengths = np.array([t[0] for t in acc_hist])
+    matches = np.array([t[1] for t in acc_hist], dtype=float)
+
+    # 定义分箱（对数分箱处理长尾）
+    bins = np.logspace(np.log10(max(1, token_lengths.min())), 
+                       np.log10(token_lengths.max()), 25)
+    
+    # 计算每个 bin 的统计量
+    bin_indices = np.digitize(token_lengths, bins)
+    bin_counts = []
+    bin_acc = []
+    bin_centers = []
+    
+    for i in range(1, len(bins)):
+        mask = bin_indices == i
+        if mask.sum() > 0:
+            bin_counts.append(mask.sum())
+            bin_acc.append(matches[mask].mean())
+            bin_centers.append((bins[i-1] + bins[i]) / 2)
+    
+    bin_counts = np.array(bin_counts)
+    bin_acc = np.array(bin_acc)
+    bin_centers = np.array(bin_centers)
+
+    # === 图1: Accuracy by token length ===
+    fig, ax = plt.subplots(figsize=(8, 4))
+    bars = ax.bar(range(len(bin_centers)), bin_acc, color="#5a9", edgecolor='white', alpha=0.9)
+    
+    # x 轴标签显示 token length 范围
+    tick_labels = [f"{int(bins[i])}-{int(bins[i+1])}" for i in range(len(bin_centers))]
+    ax.set_xticks(range(len(bin_centers)))
+    ax.set_xticklabels(tick_labels, rotation=45, ha='right', fontsize=8)
+    
+    ax.set_xlabel("Token length range")
+    ax.set_ylabel("Accuracy")
+    ax.set_title("Accuracy by token length")
+    ax.set_ylim(0, 1)
+    ax.grid(True, axis='y', linestyle='--', alpha=0.9)
+    plt.tight_layout()
+    plt.savefig(f"{output_prefix}_acc.png", dpi=150)
+    plt.close(fig)
+
+    # === 图2: Counts by token length ===
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(range(len(bin_centers)), bin_counts, color="#6c8cd5", edgecolor='white', alpha=0.9)
+    
+    ax.set_xticks(range(len(bin_centers)))
+    ax.set_xticklabels(tick_labels, rotation=45, ha='right', fontsize=8)
+    
+    ax.set_xlabel("Token length range")
+    ax.set_ylabel("Number of examples")
+    ax.set_title("Example counts by token length")
+    ax.grid(True, axis='y', linestyle='--', alpha=0.9)
+    plt.tight_layout()
+    plt.savefig(f"{output_prefix}_counts.png", dpi=150)
+    plt.close(fig)
+
+    # === 图3 (可选): 合并图，双 y 轴 ===
+    
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+    
+    x = np.arange(len(bin_centers))
+    width = 0.6
+    
+    # 左 y 轴: counts
+    bars1 = ax1.bar(x, bin_counts, width, color="#acd6ec", alpha=0.9, label='Count')
+    ax1.set_ylabel("Number of examples", color="black",fontsize=20)
+    ax1.tick_params(axis='y', labelcolor="black",labelsize=16)
+    
+    # 右 y 轴: accuracy
+    ax2 = ax1.twinx()
+    ax2.plot(x, bin_acc, 'o-', color="#f5a889", linewidth=2, markersize=6, label='Accuracy')
+    ax2.set_ylabel("Accuracy", color="black",fontsize=20)
+    ax2.tick_params(axis='y', labelcolor="black",labelsize=16)
+    ax2.set_ylim(0, 1)
+    
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(tick_labels, rotation=45, ha='right', fontsize=10)
+    ax1.set_xlabel("Token length range", fontsize=20)
+    ax1.set_title(f"{dataset_name} ", fontsize=20)
+    
+    fig.legend(loc='upper right', bbox_to_anchor=(0.9, 0.9), fontsize=20)
+    plt.tight_layout()
+    plt.savefig(f"{output_prefix}_combined.png", dpi=150)
+    plt.close(fig)
 
 def main(args):
-    print('args', args)
+    
     bs = args.batch_size
     num_of_workers = args.num_of_workers
     separator = args.separator
@@ -94,21 +189,25 @@ def main(args):
     model_name = model_path.split('/')[-1]
 
     configs = {
-        'primevul_test_paired': '/project/flame/wyu3/PRM/primevul_processed_dataset',
-        'primevul_test_unpaired':  '/project/flame/wyu3/PRM/primevul_processed_dataset_unpaired',
+        'primevul_test_paired': load_dataset('vivi-yu/primevul_processed_dataset')["test"],
+        'primevul_test_unpaired':  load_dataset('vivi-yu/primevul_processed_dataset_unpaired')["test"],
+        "precise": load_dataset('vivi-yu/vul_code_precise')["test"],
+        "reposvul_test": load_dataset('vivi-yu/reposvul_processed_dataset')["test"],
+        "sven": load_dataset('vivi-yu/vul_code_sven')["val"],
+    
     }
-    save_dir = f'outputs/{model_name}'
-    os.makedirs(save_dir, exist_ok=True)
 
     accelerator = Accelerator()
+    if accelerator.is_main_process:
+        print(f'args: {args}')
     print(f'Loading model from {model_path}')
     model = transformers.AutoModelForTokenClassification.from_pretrained(model_path)
+    model = model.bfloat16()
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
     model = accelerator.prepare(model)
     model.eval()
     
-    dataset_path = configs[dataset_name]
-    dataset = load_from_disk(dataset_path)["test"]
+    dataset = configs[dataset_name]
     number_of_vulnerable = sum([0 in dataset[i]['labels'] for i in range(len(dataset))])
     print(f'total number of vulnerable {number_of_vulnerable}, total number: {len(dataset)}')
     # dataset = dataset.select(range(500))
@@ -138,7 +237,7 @@ def main(args):
         batch = collate_fn(batch_, tokenizer, separator)
         input_ids = batch['input_ids'].to(accelerator.device)
         input_ids = input_ids.to(torch.long)
-        if input_ids.size(-1) > 8196:
+        if input_ids.size(-1) > 70000:
             print('input_ids.size(-1)', input_ids.size(-1))
             continue
         label = batch['label']
@@ -154,6 +253,7 @@ def main(args):
             label_ = label[i]
             prob = logits[i, score_id].softmax(dim=-1)  # (steps, 2)
             score = prob[:, 1] - prob[:, 0]  # (steps,)
+            new_batch[i]['input_ids_length'] = input_ids[i].size(-1)
             if criterion == 'softmax':
                 pred_or = ((-score / temperature).softmax(dim=-1) * score).sum()
                 if (label_ != -1 and pred_or <= 0) or (label_ == -1 and pred_or > 0):
@@ -194,6 +294,19 @@ def main(args):
     
     accelerator.wait_for_everyone()
     gathered_data = gather_objects(res_data, accelerator)
+    
+    
+    
+    if accelerator.is_main_process:
+        acc_hist = []
+        print('length of gathered_data', len(gathered_data))
+        for e in gathered_data:
+            acc_hist.append((e['input_ids_length'], e['match']))
+        plot_accuracy_histograms(
+            acc_hist,
+            dataset_name,
+            output_prefix=f"{dataset_name}_{criterion}"
+        )
 
     if accelerator.is_main_process and criterion != 'allsteps':
         
@@ -242,10 +355,10 @@ def main(args):
                         elif not paired_data['match'] and not gathered_data[i]['match']:
                             PR += 1
                         
-    if accelerator.is_main_process and dataset_name == 'primevul_test_paired' and criterion != 'allsteps':
-        sum_=PC+PV+PB+PR
-        print(f'{dataset_name} PC: {PC/sum_}, PV: {PV/sum_}, PB: {PB/sum_}, PR: {PR/sum_}')
-    elif accelerator.is_main_process and criterion == 'allsteps':
+            if accelerator.is_main_process  and criterion != 'allsteps':
+                sum_=PC+PV+PB+PR
+                print(f'{dataset_name} PC: {PC/sum_}, PV: {PV/sum_}, PB: {PB/sum_}, PR: {PR/sum_}')
+    if accelerator.is_main_process and criterion == 'allsteps':
         predicted_labels = [e['predicted_label'] for e in gathered_data]
         predicted_labels =  np.array(np.concatenate(predicted_labels))
         gt_labels = [e['labels'] for e in gathered_data]
@@ -278,9 +391,10 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
     parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps", "precise"], type=str, default="softmax")
-    parser.add_argument("-d", "--dataset_name", choices=["primevul_test_paired", "primevul_test_unpaired"], type=str, default="primevul_test_paired")
+    parser.add_argument("-d", "--dataset_name", choices=["sven","primevul_test_paired", "primevul_test_unpaired", "precise","reposvul_test", "reposvul_test_concat", "reposvul_test_func"], type=str, default="primevul_test_paired")
     args = parser.parse_args()
 
     set_seed(42)
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    print('args', args)
     main(args)

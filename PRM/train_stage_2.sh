@@ -13,13 +13,13 @@ DISTRIBUTED_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
-    --model_name_or_path /project/flame/wyu3/PRM/output/stage2/coder_s2_repos_func_3epoch_func_2000 \
-    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset_func" \
+    --model_name_or_path /project/flame/wyu3/PRM/output/stage1/precise_s1_coder \
+    --train_data_path "vivi-yu/vul_code_precise" \
     --fix_llm False \
     --num_train_epochs 1 \
-    --learning_rate 1e-6 \
-    --run_name coder_s2_repos_func_2epoch \
-    --output_dir /project/flame/wyu3/PRM/output/stage2/coder_s2_repos_func_2epoch \
+    --learning_rate 5e-7 \
+    --run_name precise_s2_coder \
+    --output_dir /project/flame/wyu3/PRM/output/stage2/precise_s2_coder \
     --bf16 True \
     --per_device_train_batch_size 6 \
     --per_device_eval_batch_size 1 \

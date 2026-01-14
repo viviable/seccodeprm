@@ -2,8 +2,8 @@ import transformers
 from datasets import load_from_disk
 
 def push_model():
-    model_path = '/project/flame/wyu3/PRM/output/stage2/sven_s2_last_10epoch'
-    hub_model_id = 'vivi-yu/sven_s2_f1_71'
+    model_path = '/project/flame/wyu3/PRM/output/stage1/precise_s1_coder'
+    hub_model_id = 'vivi-yu/precise_s1'
 
     model = transformers.AutoModelForTokenClassification.from_pretrained(model_path)
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
@@ -91,5 +91,5 @@ def save_tokenized_dataset(tokenizer_path, dataset_path, output_path):
     tokenized_dataset.save_to_disk("trl-lib/math_shepherd_tokenized")
 
 if __name__ == "__main__":
-    # push_model()
-    push_dataset()
+    push_model()
+    # push_dataset()
