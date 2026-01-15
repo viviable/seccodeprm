@@ -15,7 +15,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 # nohup torchrun --nproc_per_node=4 --master_port 46001 code_sven_bench.py -m Qwen/Qwen2.5-Math-PRM-72B -d sven_val -t 0.1 -c allsteps > sven_baseline_qwenprm_72b.log 2>&1 &
 
 #precise bugs
-nohup torchrun --nproc_per_node=4 --master_port 46005 code_vul_bench.py -m  /project/flame/wyu3/PRM/output/merge_three/ -b 1  -d precise > merge_three_precise.log 2>&1 &
+nohup torchrun --nproc_per_node=4 --master_port 46005 code_vul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/reposvul_s1_qwen2.5_7b_relabeled_soft_0.5 -b 1  -d repos > reposvul_s1_qwen2.5_7b_relabeled_soft_0.5.log 2>&1 &
 # nohup torchrun --nproc_per_node=4 --master_port 46005 code_precise_bench.py -m  Qwen/Qwen2.5-Math-PRM-7B  -b 1 > precise_baseline_qwen2.5_7b.log 2>&1 &
 
 #primevul

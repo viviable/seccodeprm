@@ -67,7 +67,7 @@ def get_args():
     parser.add_argument('--criterion2', type=str, choices=['softmax', 'last_position'], default='softmax')
     parser.add_argument('--criterion1', type=str, choices=['binary', 'min', 'ave', 'acc'], default='binary')
     parser.add_argument('--prm_name', type=str, default='Qwen/Qwen2.5-Math-PRM-7B')
-    parser.add_argument('--generate_answers', type=bool, default=False)
+    parser.add_argument('--generate_answers', action='store_true')
     return parser.parse_args()
 
 def main():
@@ -102,7 +102,7 @@ def main():
         trust_remote_code=True,
     )
     
-    generate_answers = False
+    generate_answers = args.generate_answers
     
     if generate_answers:
         llm = LLM(model_name, 

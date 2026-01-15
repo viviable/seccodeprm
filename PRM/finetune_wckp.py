@@ -6,6 +6,7 @@ import transformers
 from datasets import load_dataset, load_from_disk, concatenate_datasets
 from torch import distributed as dist
 from trl import PRMConfig, PRMTrainer
+from soft_prm_trainer import SoftPRMTrainer
 import torch
 import re
 
@@ -30,8 +31,9 @@ class DataArguments:
 class TrainingArguments(PRMConfig):
     cache_dir: Optional[str] = field(default=None)
     max_length: int = field(default=128000)
-    max_completion_length: int = field(default=8000)
+    max_completion_length: int = field(default=20000)
     fix_llm: bool = field(default=False)
+    soft: bool = field(default=False)
     
     enable_load_ckpt: bool = field(
         default=True, 
@@ -56,8 +58,12 @@ def make_supervised_data_module(data_args) -> Dict:
     # if 'bigvul' in data_args.train_data_path or 'precise' in data_args.train_data_path or 'sven' in data_args.train_data_path or 'primevul' in data_args.train_data_path:
     # train_dataset = load_from_disk(data_args.train_data_path)['train']
     # eval_dataset = load_from_disk(data_args.train_data_path)['test']
-    train_dataset = load_dataset(data_args.train_data_path, split="train")
-    eval_dataset = load_dataset(data_args.train_data_path, split="test")
+    if data_args.train_data_path.startswith('vivi-yu'):
+        train_dataset = load_dataset(data_args.train_data_path, split="train")
+        eval_dataset = load_dataset(data_args.train_data_path, split="test")
+    else:
+        train_dataset = load_from_disk(data_args.train_data_path)['train']
+        eval_dataset = load_from_disk(data_args.train_data_path)['test']
     # for faster loading
     if 'other_info' in train_dataset.column_names:
         train_dataset = train_dataset.remove_columns('other_info')
@@ -169,11 +175,12 @@ def train():
     # Start trainner
     # print('training_args', training_args)
     
-    trainer = PRMTrainer(
-        model=model, 
-        processing_class=tokenizer, 
-        args=training_args, 
-        **data_module
+    trainer_cls = SoftPRMTrainer if training_args.soft else PRMTrainer
+    trainer = trainer_cls(
+        model=model,
+        processing_class=tokenizer,
+        args=training_args,
+        **data_module,
     )
     print('training_args.resume_from_checkpoint', training_args.resume_from_checkpoint)  # string
     local_rank = int(os.environ.get("LOCAL_RANK", 0))

@@ -111,11 +111,11 @@ def postprocess_code_blocks(list1, list2):
     return list1, list2
 
 def one_zero_dataset(path):
-    dataset = load_from_disk("/project/flame/wyu3/PRM/bigvul_processed_dataset")
+    dataset = load_dataset(path)
     new_dataset = DatasetDict()
     
     # Initialize empty lists for each split
-    for split_name in ['test', 'train', 'validation']:
+    for split_name in ['test', 'train']: #'validation'
         new_dataset[split_name] = []
         
         for data in dataset[split_name]:
@@ -130,13 +130,13 @@ def one_zero_dataset(path):
                 new_data['completions'] = data['completions']
                 new_data['prompt'] = data['prompt']
                 new_data['source'] = data['source']
-                new_data['other_info'] = data['other_info']
+                # new_data['other_info'] = data['other_info']
                 new_data['index'] = data['index']
                 new_dataset[split_name].append(new_data)
             else:
                 new_dataset[split_name].append(data)
         new_dataset[split_name] = Dataset.from_list(new_dataset[split_name])
-    new_dataset.save_to_disk(path)
+    new_dataset.save_to_disk('/project/flame/wyu3/PRM/reposvul_processed_dataset_one_zero')
 
 def preprocess_data(data):
     for item in data:
@@ -329,6 +329,7 @@ def reorg():
     dataset.save_to_disk('/project/flame/wyu3/PRM/all_processed_dataset_31340_tokenized_train_test')
     
 if __name__ == "__main__":
-    path = '/project/flame/wyu3/PRM/reposvul_processed_dataset_func'
-    main(path)
+    # path = '/project/flame/wyu3/PRM/reposvul_processed_dataset_func'
+    # main(path)
+    one_zero_dataset('vivi-yu/reposvul_processed_dataset')
 
