@@ -1,3 +1,4 @@
+import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -18,8 +19,7 @@ def plot_dumbbell_grid(panels, model_groups, save_path=None):
     rows = len(model_groups)
     cols = len(panels)
     fig, axes = plt.subplots(rows, cols, figsize=(4.2 * cols, 2.4 * rows), sharey=False)
-    if rows == 1:
-        axes = np.array([axes])
+    axes = np.atleast_2d(axes)
 
     for r, models in enumerate(model_groups):
         x = np.arange(len(models))
@@ -61,7 +61,7 @@ def plot_dumbbell_grid(panels, model_groups, save_path=None):
                 ax.set_ylim(0.0, 1.0)
 
             if c == 0:
-                ax.set_ylabel("SER", fontsize=11)
+                ax.set_ylabel("Score", fontsize=11)
 
     fig.tight_layout()
     if save_path:
@@ -71,46 +71,69 @@ def plot_dumbbell_grid(panels, model_groups, save_path=None):
 
 
 def demo():
-    panels = [
-        {"title": "Qwen2.5-Coder-7B-Instruct", "logy": False, "series": []},
-        {"title": "Qwen2.5-Coder-32B-Instruct", "logy": False, "series": []},
-        {"title": "Qwen3-Coder-30B-Instruct", "logy": False, "series": []},
-        {"title": "SER max (log)", "logy": True, "series": []},
-    ]
-    model_groups = [
-        ["pass@1", "pass@3", "pass@5", "pass@10"],
-
-    ]
-
-    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
-    markers = [("o", "o"), ("s", "s"), ("^", "^"), ("D", "D"), ("P", "P")]
-    labels = ["A", "B", "C", "D", "E"]
-
-    rng = np.random.default_rng(3)
-    for p in panels:
-        for i, (mlo, mhi) in enumerate(markers):
-            values = []
-            for models in model_groups:
-                group_vals = []
-                for _ in models:
-                    lo = float(rng.uniform(0.0, 0.2))
-                    hi = float(rng.uniform(0.5, 1.0))
-                    if p["logy"]:
-                        lo = float(10 ** rng.uniform(-4, -1))
-                        hi = float(10 ** rng.uniform(-1, 0))
-                    group_vals.append((lo, hi))
-                values.append(group_vals)
-            p["series"].append(
-                {
-                    "label": labels[i],
-                    "values": values,
-                    "marker_low": mlo,
-                    "marker_high": mhi,
-                    "color": colors[i],
-                }
-            )
-
+    panels, model_groups = build_panels_from_cweval(
+        "/home/wyu3/workspace/PURE/PRM/eval/cweval_exp.csv"
+    )
     plot_dumbbell_grid(panels, model_groups, save_path="dumbbell.png")
+
+
+def load_cweval_csv(path):
+    rows = []
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if not row.get("name") or row["name"] == "name":
+                continue
+            rows.append(row)
+    if not rows:
+        raise ValueError(f"No usable rows found in {path}")
+    for row in rows:
+        for key, val in row.items():
+            if key == "name":
+                continue
+            row[key] = float(val)
+    return rows
+
+
+def shorten_name(name):
+    base = name.split("/")[-1]
+    base = base.replace("_cweval", "")
+    base = base.replace("prime_s2_ckp500_from_s0_all_", "")
+    base = base.replace("prime_s2_ckp500_from_s0_", "")
+    return base
+
+
+def build_panels_from_cweval(csv_path):
+    rows = load_cweval_csv(csv_path)
+    ks = sorted(
+        {
+            int(col.split("@")[1])
+            for col in rows[0].keys()
+            if col.startswith("functional@")
+        }
+    )
+    model_groups = [[shorten_name(r["name"]) for r in rows]]
+    panels = []
+    for k in ks:
+        func_col = f"functional@{k}"
+        sec_col = f"secure@{k}"
+        group_vals = [(r[sec_col], r[func_col]) for r in rows]
+        panels.append(
+            {
+                "title": f"@{k}",
+                "logy": False,
+                "series": [
+                    {
+                        "label": "secure->functional",
+                        "values": [group_vals],
+                        "marker_low": "o",
+                        "marker_high": "o",
+                        "color": "#1f77b4",
+                    }
+                ],
+            }
+        )
+    return panels, model_groups
 
 
 if __name__ == "__main__":

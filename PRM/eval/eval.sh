@@ -15,8 +15,12 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 # nohup torchrun --nproc_per_node=4 --master_port 46001 code_sven_bench.py -m Qwen/Qwen2.5-Math-PRM-72B -d sven_val -t 0.1 -c allsteps > sven_baseline_qwenprm_72b.log 2>&1 &
 
 #precise bugs
-nohup torchrun --nproc_per_node=4 --master_port 46005 code_vul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/reposvul_s1_qwen2.5_7b_relabeled_soft_0.5 -b 1  -d repos > reposvul_s1_qwen2.5_7b_relabeled_soft_0.5.log 2>&1 &
+nohup torchrun --nproc_per_node=4 --master_port 46005 code_vul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/all_31340_s1_qwen2.5_7b_onezero/checkpoint-3000 -b 1  -d repos > all_onezero_ckp3000_s1_qwen2.5_7b_repos.log 2>&1 &
 # nohup torchrun --nproc_per_node=4 --master_port 46005 code_precise_bench.py -m  Qwen/Qwen2.5-Math-PRM-7B  -b 1 > precise_baseline_qwen2.5_7b.log 2>&1 &
+# nohup torchrun --nproc_per_node=4 --master_port 46005 code_vul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/all_31340_s1_qwen2.5_7b_onezero/checkpoint-3000 -b 1  -d primevul_test_paired > all_onezero_ckp3000_s1_qwen2.5_7b_primevul_test_paired.log 2>&1 &
+# nohup torchrun --nproc_per_node=4 --master_port 46005 code_vul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/all_31340_s1_qwen2.5_7b_onezero/checkpoint-3000 -b 1  -d precise > all_onezero_ckp3000_s1_qwen2.5_7b_precise.log 2>&1 &
+# nohup torchrun --nproc_per_node=4 --master_port 46005 code_vul_bench.py -m  /project/flame/wyu3/PRM/output/stage1/reposvul_s1_qwen2.5_7b_balanced_0.1 -b 1  -d repos > balanced_0.1_s1_qwen2.5_7b_repos.log 2>&1 &
+
 
 #primevul
 # nohup torchrun --nproc_per_node=4 --master_port 46003 code_vul_bench.py -m vivi-yu/prime_s2_ckp1000_from_s0_all  -b 1  -d primevul_test_paired  > primevul_hf_s2_ckp1000_from_s0_all.log 2>&1 &

@@ -1,8 +1,9 @@
+### old version, for local dataset
 import json
 from pathlib import Path
 from typing import Iterable
 
-from datasets import Dataset, DatasetDict, concatenate_datasets, load_from_disk
+from datasets import Dataset, DatasetDict, Features, Value, concatenate_datasets, load_from_disk, load_dataset
 from datasets.features.features import Sequence, register_feature
 
 
@@ -14,7 +15,8 @@ for legacy_name in ("List", "list"):
 def load_dataset_dict(path: str) -> DatasetDict:
     """Load a dataset from disk and normalize it to a DatasetDict."""
     try:
-        dataset = load_from_disk(path)
+        # dataset = load_from_disk(path)
+        dataset = load_dataset(path)
     except ValueError as err:
         if "Type mismatch" not in str(err):
             raise
@@ -90,21 +92,102 @@ def concatenate_splits(datasets: Iterable[DatasetDict]) -> DatasetDict:
     return combined
 
 
+def concat_hf_datasets(
+    source_paths: Iterable[str],
+    repli_num: Iterable[int],
+) -> DatasetDict:
+    """Concatenate HF Hub datasets by split, repeating each dataset as needed."""
+    datasets = []
+    for path, num in zip(source_paths, repli_num):
+        for _ in range(num):
+            ds = load_dataset(path)
+            if isinstance(ds, DatasetDict):
+                for split_name, split_ds in ds.items():
+                    if "other_info" in split_ds.column_names:
+                        ds[split_name] = split_ds.remove_columns("other_info")
+                datasets.append(ds)
+            else:
+                if "other_info" in ds.column_names:
+                    ds = ds.remove_columns("other_info")
+                datasets.append(DatasetDict({"train": ds}))
+    return concatenate_splits(datasets)
+
+
+def _vul_code_sven_features() -> Features:
+    return Features(
+        {
+            "prompt": Value("string"),
+            "completions": Sequence(Value("string")),
+            "labels": Sequence(Value("int64")),
+            "source": Value("string"),
+            "other_info": {
+                "char_changes": {
+                    "added": Sequence(
+                        {"char_end": Value("int64"), "char_start": Value("int64"), "chars": Value("string")}
+                    ),
+                    "deleted": Sequence(
+                        {"char_end": Value("int64"), "char_start": Value("int64"), "chars": Value("string")}
+                    ),
+                },
+                "commit_link": Value("string"),
+                "file_name": Value("string"),
+                "func_name": Value("string"),
+                "line_changes": {
+                    "added": Sequence(
+                        {
+                            "char_end": Value("int64"),
+                            "char_start": Value("int64"),
+                            "line": Value("string"),
+                            "line_no": Value("int64"),
+                        }
+                    ),
+                    "deleted": Sequence(
+                        {
+                            "char_end": Value("int64"),
+                            "char_start": Value("int64"),
+                            "line": Value("string"),
+                            "line_no": Value("int64"),
+                        }
+                    ),
+                },
+                "vul_type": Value("string"),
+            },
+            "index": Value("int64"),
+        }
+    )
+
+
+def concat_hf_datasets_local(
+    source_paths: Iterable[str],
+    repli_num: Iterable[int],
+) -> DatasetDict:
+    """Concatenate HF Hub datasets, fixing known schema issues locally."""
+    datasets = []
+    for path, num in zip(source_paths, repli_num):
+        for _ in range(num):
+            # if path == "vivi-yu/vul_code_sven":
+            #     ds = load_dataset(path, features=_vul_code_sven_features())
+            # else:
+            ds = load_dataset(path)
+            if isinstance(ds, DatasetDict):
+                datasets.append(ds)
+            else:
+                datasets.append(DatasetDict({"train": ds}))
+    return concatenate_splits(datasets)
+
+
 def main() -> None:
-    # source_paths = [
-    #     "/project/flame/wyu3/PRM/reposvul_processed_dataset",
-    #     # "/project/flame/wyu3/PRM/bigvul_processed_dataset",
-    #     "/project/flame/wyu3/PRM/precisebugs_processed_dataset",
-    #     "/project/flame/wyu3/PRM/primevul_processed_dataset",
-    #     "/project/flame/wyu3/PRM/sven_processed_dataset",
-    # ]
     source_paths = [
-        "/project/flame/wyu3/PRM/bigvul_processed_dataset",
-        
+        "vivi-yu/reposvul_processed_dataset_cleaned",
+        # "/project/flame/wyu3/PRM/bigvul_processed_dataset",
+        "vivi-yu/vul_code_precise",
+        "vivi-yu/primevul_processed_dataset",
+        "vivi-yu/vul_code_sven",
     ]
+    
     # repli_num = [5, 1, 30, 600]
-    # repli_num = [3, 1, 3, 40]
-    repli_num = [1]
+    repli_num = [3, 1, 3, 40]
+    # repli_num = [1]
     # repli_num = [3, 1, 10, 40]
     
     
@@ -112,25 +195,15 @@ def main() -> None:
     datasets = []
     for path, num in zip(source_paths, repli_num):
         for _ in range(num):
-            # datasets.append(load_dataset_dict(path))
-            datasets.append(load_dataset("vivi-yu/reposvul_processed_dataset"))
-    merged = concatenate_splits(datasets)
-    output_dir = Path("/project/flame/wyu3/PRM/all_processed_dataset_31340_pure")
+            datasets.append(load_dataset_dict(path))
+            # datasets.append(load_dataset("vivi-yu/reposvul_processed_dataset"))
+    # merged = concatenate_splits(datasets)
+    merged = concat_hf_datasets(source_paths, repli_num)
+    output_dir = Path("/project/flame/wyu3/PRM/all_processed_dataset_31340")
     merged.save_to_disk(output_dir.as_posix())
 
 
-def clean_data(dataset: DatasetDict) -> DatasetDict:
-    from datasets import load_dataset
-    dataset = load_dataset('vivi-yu/reposvul_processed_dataset')
-    before = ["}", "\tint i;", "\t}", "#endif", "\t}", "\treturn 0;\n}", "return 0;\n}", "\t\treturn 0;", "\treturn 0;", "\treturn true;", "*/", "\treturn;", "\treturn ret;", "\treturn 0;\n\t}","\t\t}", "return 1;","break;", "continue;",  "return NULL;", ]
-    after = ["\t\telse", "#else", "out:", "int i;", ]
-    remove = [ "\n"]
-    for split in dataset.keys():
-        for data in dataset[split]:
-            completions = data['completions']
-            for step in completions:
-                
-    return dataset
+
 
 if __name__ == "__main__":
     main()

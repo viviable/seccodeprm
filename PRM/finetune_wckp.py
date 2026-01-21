@@ -31,7 +31,7 @@ class DataArguments:
 class TrainingArguments(PRMConfig):
     cache_dir: Optional[str] = field(default=None)
     max_length: int = field(default=128000)
-    max_completion_length: int = field(default=20000)
+    max_completion_length: int = field(default=8000)
     fix_llm: bool = field(default=False)
     soft: bool = field(default=False)
     

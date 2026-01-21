@@ -6,6 +6,11 @@ from tqdm import tqdm
 import torch
 import json
 import os
+model_ids = {
+    'anthropic.claude-3-5-sonnet-20240620-v1:0': 'Claude-3.5-Sonnet',
+    # 'amazon.titan-text-v1:0': 'Titan-Text',
+    # 'amazon.titan-text-v1:0': 'Titan-Text',
+}
 # datasets = {
     # "precisebugs_test": load_from_disk("/project/flame/wyu3/PRM/precisebugs_processed_dataset")["test"],
     # "reposvul_test": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset")["test"],
@@ -88,24 +93,13 @@ def api_call():
     
 def main():
     # model_path = "Qwen/Qwen2.5-Coder-7B-Instruct"
-    model_path = "Qwen/Qwen2.5-Coder-32B-Instruct"
+    model_name = ""
     # model_path = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
     # model_path = "mistralai/Codestral-22B-v0.1"
     # model_path = "meta-llama/Llama-4-Scout-17B-16E-Instruct"
     # model_path = "google/gemma-3-12b-it"
     
-    available_gpus = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
-    tensor_parallel_size = len(available_gpus)
-
-        
-    llm = LLM(
-        model=model_path,
-        tensor_parallel_size=tensor_parallel_size,
-        gpu_memory_utilization=0.9,
-        max_model_len=32768,
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    sampling_params = SamplingParams(temperature=0.8, top_p=0.95)
+    
 
     for dataset_name in datasets:
         dataset = datasets[dataset_name]
@@ -116,10 +110,7 @@ def main():
         for data in dataset:
             for i in tqdm(range(len(data["completions"]))):
                 prompt =  f'Given the previous code {data["completions"][:i]}, determine whether the current code {data["completions"][i]} is vulnerable or not. Answer with Yes or No.'
-                tokens = tokenizer.encode(prompt)
-                if len(tokens) > 30000:
-                    print(f"Prompt too long: {len(tokens)}")
-                    continue
+                
                 prompts.append(prompt)
                 labels.append(data["labels"][i])
         print('dataset_name:', dataset_name)
@@ -131,13 +122,13 @@ def main():
         FP = 0
         TN = 0
         FN = 0
-        
+        call = api_call()
         for i in range(0, len(prompts), batch_size):
             max_len = min(i+batch_size, len(prompts))
             prompts_batch = prompts[i:max_len]
             labels_batch = labels[i:max_len]
             try:
-                outputs = llm.generate(prompts_batch, sampling_params)
+                outputs = call(prompts_batch)
                 for j in range(max_len - i):
                     output_text = outputs[j].outputs[0].text
                     output_text = output_text.split("assistantfinal:")[-1].lower()
@@ -177,7 +168,7 @@ def main():
         print(f"Total number of results: {len(results)}")
         print(f"Invalid: {invalid / len(results)}")
         
-        with open(f"baseline_llm_prompting_{model_path.replace('/', '_')}_{dataset_name}.txt", "a") as f:
+        with open(f"baseline_llm_prompting_{model_name.replace('/', '_')}_{dataset_name}.txt", "a") as f:
             for result in results:
                 f.write(result + "\n")
 

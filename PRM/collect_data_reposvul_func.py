@@ -136,7 +136,7 @@ def one_zero_dataset(path):
             else:
                 new_dataset[split_name].append(data)
         new_dataset[split_name] = Dataset.from_list(new_dataset[split_name])
-    new_dataset.save_to_disk('/project/flame/wyu3/PRM/reposvul_processed_dataset_one_zero')
+    new_dataset.save_to_disk('/project/flame/wyu3/PRM/all_processed_dataset_31340_one_zero')
 
 def preprocess_data(data):
     for item in data:
@@ -331,5 +331,5 @@ def reorg():
 if __name__ == "__main__":
     # path = '/project/flame/wyu3/PRM/reposvul_processed_dataset_func'
     # main(path)
-    one_zero_dataset('vivi-yu/reposvul_processed_dataset')
+    one_zero_dataset('vivi-yu/all_processed_31340')
 

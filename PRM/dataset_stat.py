@@ -26,6 +26,7 @@ datasets = {
     # "reposvul_train_func": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_func")["train"],
     
     "reposvul_train": load_dataset("vivi-yu/reposvul_processed_dataset")["train"],
+    "reposvul_train_cleaned": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_cleaned")["train"],
     "sven_train": load_dataset("vivi-yu/vul_code_sven")["train"],
     # "bigvul_train": load_dataset("vivi-yu/bigvul_processed")["train"],
     "primevul_train_paired": load_dataset("vivi-yu/primevul_processed_dataset")["train"],
@@ -36,6 +37,7 @@ test_datasets = {
     "precisebugs_test": load_dataset("vivi-yu/vul_code_precise")["test"],
     # "reposvul_test_func": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_func")["test"],
     "reposvul_test": load_dataset("vivi-yu/reposvul_processed_dataset")["test"],
+    "reposvul_test_cleaned": load_from_disk("/project/flame/wyu3/PRM/reposvul_processed_dataset_cleaned")["test"],
     "sven_test": load_dataset("vivi-yu/vul_code_sven")["val"],
     # "bigvul_dedup_test": load_dataset("vivi-yu/bigvul_dedup_test")["train"],
     "primevul_test_paired": load_dataset("vivi-yu/primevul_processed_dataset")["test"],
@@ -349,11 +351,11 @@ if __name__ == "__main__":
     # get_dataset_stat("precisebugs_train")
     # get_dataset_stat("reposvul_train_func")
     # analyze_train_test_token_lengths("reposvul_train", "reposvul_test")
-    # get_dataset_stat("reposvul_train")
+    get_dataset_stat("reposvul_train_cleaned")
     # get_dataset_stat("sven_train")
     # get_dataset_stat("bigvul_train")
     # get_dataset_stat("primevul_train_paired")
     # get_dataset_stat("primevul_train_unpaired")
-    plot_language_and_cwe_bars("reposvul_train")
+    # plot_language_and_cwe_bars("reposvul_train")
     
     

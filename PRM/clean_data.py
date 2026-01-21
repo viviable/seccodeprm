@@ -235,4 +235,42 @@ def clean_data():
     
     print(count_common_patterns(ds))
 
-clean_data()   
+def balance_data(ds, k):
+    """
+    Repeat examples whose labels contain 0 so that the ratio
+    (with_zero / without_zero) is close to k.
+    """
+    from datasets import concatenate_datasets
+
+    def has_zero_label(example):
+        labels = example.get("labels", [])
+        return 0 in labels if isinstance(labels, list) else False
+
+    def balance_split(split, k):
+        with_zero = split.filter(has_zero_label)
+        without_zero = split.filter(lambda ex: not has_zero_label(ex))
+
+        count_with = len(with_zero)
+        count_without = len(without_zero)
+        if count_with == 0 or count_without == 0:
+            return split
+
+        current_ratio = count_with / count_without
+        if k <= current_ratio:
+            m = 1
+        else:
+            m = max(1, int(round((k * count_without) / count_with)))
+
+        repeated_with = concatenate_datasets([with_zero] * m) if m > 1 else with_zero
+        return concatenate_datasets([without_zero, repeated_with])
+
+    if isinstance(ds, DatasetDict):
+        return DatasetDict({split: balance_split(ds[split], k) for split in ds.keys()})
+    return balance_split(ds, k)
+
+if __name__ == "__main__":
+    # clean_data()   
+    ds = load_dataset("vivi-yu/reposvul_processed_dataset_cleaned")
+    k = 0.5
+    ds = balance_data(ds, k)
+    ds.save_to_disk(f"/project/flame/wyu3/PRM/reposvul_processed_dataset_balanced_{k}")

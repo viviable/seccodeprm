@@ -52,13 +52,17 @@ def load_n_prepare_dataset(ds_name, generated_dir):
                     fs_path = file_path
                 else:
                     candidates = []
-                    if file_path.startswith('evals/'):
-                        file_path = '/'.join(file_path.split('/')[2:])
-                        candidates.append(
-                            os.path.join(evals_root, file_path)
-                        )
-                        
-                    
+                    candidates.append(
+                        os.path.join(evals_root, '/'.join(file_path.split('/')[2:]))
+                    )
+                    candidates.append(
+                        os.path.join(evals_root, '/'.join(file_path.split('/')[3:]))
+                    )
+                    candidates.append(
+                        os.path.join(evals_root, '/'.join(file_path.split('/')[4:]))
+                    )
+                   
+                    # import pdb; pdb.set_trace()    
                     fs_path = next(
                         (p for p in candidates if os.path.exists(p)),
                         None,
@@ -173,7 +177,7 @@ def get_stepwise_rewards(generated_code, step_separator, step_separator_token, q
     for step in steps:
         step_ids = prm_tokenizer(step, add_special_tokens=False, return_tensors='pt')['input_ids']
         input_ids = torch.cat(
-            [input_ids, step_ids, step_separator_token], 
+            [input_ids, step_ids, step_separator_token],
             dim=-1,
         )
         score_ids.append(input_ids.size(-1) - 1)
@@ -182,7 +186,7 @@ def get_stepwise_rewards(generated_code, step_separator, step_separator_token, q
     token_masks = torch.zeros_like(input_ids, dtype=torch.bool)
     token_masks[0, score_ids] = True
     assert torch.all(input_ids[token_masks].to("cpu") == step_separator_token)
-    
+
     with torch.no_grad():
         logits = prm(input_ids).logits
         step_rewards = []

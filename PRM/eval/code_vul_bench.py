@@ -194,6 +194,7 @@ def main(args):
         "precise": load_dataset('vivi-yu/vul_code_precise')["test"],
         "repos": load_dataset('vivi-yu/reposvul_processed_dataset')["test"],
         "sven": load_dataset('vivi-yu/vul_code_sven')["val"],
+        "repos_cleaned": load_dataset('vivi-yu/reposvul_processed_dataset_cleaned')["test"],
     
     }
 
@@ -391,7 +392,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--separator", type=str, default="\n\n", help="It's important to use the same separator as the one used during TRL training")
     parser.add_argument("-t", "--temperature", type=float, default=0.1)
     parser.add_argument("-c", "--criterion", choices=["softmax", "simple", "allsteps", "precise"], type=str, default="softmax")
-    parser.add_argument("-d", "--dataset_name", choices=["sven","primevul_test_paired", "primevul_test_unpaired", "precise","reposvul_test", "repos", "reposvul_test_func"], type=str, default="primevul_test_paired")
+    parser.add_argument("-d", "--dataset_name", choices=["sven","primevul_test_paired", "primevul_test_unpaired", "precise","reposvul_test", "repos", "repos_cleaned", "reposvul_test_func"], type=str, default="primevul_test_paired")
     args = parser.parse_args()
 
     set_seed(42)

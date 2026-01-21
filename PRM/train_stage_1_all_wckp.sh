@@ -14,14 +14,14 @@ DISTRIBUTED_ARGS="
 
 torchrun $DISTRIBUTED_ARGS finetune_wckp.py \
     --model_name_or_path Qwen/Qwen2.5-Coder-7B-Instruct \
-    --train_data_path "/project/flame/wyu3/PRM/reposvul_processed_dataset" \
+    --train_data_path "/project/flame/wyu3/PRM/all_processed_dataset_31340_one_zero" \
     --fix_llm True \
     --num_train_epochs 3 \
     --learning_rate 1e-4 \
-    --run_name reposvul_s1_qwen2.5_7b_onezero \
-    --output_dir /project/flame/wyu3/PRM/output/stage1/reposvul_s1_qwen2.5_7b_onezero \
+    --run_name all_31340_s1_qwen2.5_7b_onezero \
+    --output_dir /project/flame/wyu3/PRM/output/stage1/all_31340_s1_qwen2.5_7b_onezero \
     --bf16 True \
-    --per_device_train_batch_size 16 \
+    --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
