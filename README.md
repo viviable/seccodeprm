@@ -1,62 +1,83 @@
-<div align="left">
+# SecCodePRM
 
+SecCodePRM is a codebase for training and evaluating PRMs (Process/Preference/Policy Reward Models; naming per your paper/project) in secure coding scenarios. The repository is organized by data processing, training, and evaluation workflows.
 
-## 🔧 Quick Start
+## Repository Layout
 
-We implement our algorithm on two frameworks, OpenRLHF and verl, in 2 different branches respectively. If you are new to our project, we recommend using verl version.
+- `data/`: data collection, cleaning, and dataset utilities
+- `train/`: training scripts and configs
+- `eval/`: evaluation scripts and configs
+- `requirements.txt`: dependency list
+- `setup.py` / `pyproject.toml`: packaging/build configuration
+- `nccl.conf`: distributed training config (if needed)
 
-### Installation
+## Environment
 
-#### 1. OpenRLHF version
-
-Please follow [OpenRLHF's guidance](https://github.com/OpenRLHF/OpenRLHF/tree/main?tab=readme-ov-file#installation) to configure required environments. Then run `pip install -r requirements.txt`.
-
-#### 2. verl version
-
-Please refer to the [official installation guidance](https://verl.readthedocs.io/en/latest/start/install.html#install-from-custom-environment) of verl.
-
-### Training of PRM
-
-We train the PRM in 2 stages using [TRL](https://github.com/huggingface/trl) and a [preprocessed vul dataset](https://huggingface.co/vivi-yu). In the first stage, we freeze the LLM and only train the last score layer (MLP) with 1e-4 learning rate rate for 3 epochs. In the second stage, we unfreeze the LLM and fine-tune all parameters with 1e-6 learning rate for 1 epoch. 
-```bash
-cd PRM
-# stage 1
-bash ./PRM/train_stage_1_all_wckp.sh
-# stage 2
-bash ./PRM/train_stage_2.sh
-```
-
-### Eval of PRM
-Eval tips: temperature=0.1 works better for every benchmark.
-#### 1. eval all the benchmark using 
+Recommended Python 3.8+.
 
 ```bash
-bash ./PRM/eval/eval_all.sh   model_dir
+pip install -r requirements.txt
 ```
 
+If you only need a subset of functionality, you can install a reduced set of dependencies.
 
-#### 2. eval single benchmark
+## Data Preparation
+
+Example data collection commands (see `data/collect_data.py` for all options):
+
 ```bash
-bash ./PRM/eval/eval.sh  
+# BigVul
+python data/collect_data.py bigvul --output ./bigvul_processed_dataset
+
+# PreciseBugs
+python data/collect_data.py precise --dir /project/flame/wyu3/PRM/PreciseBugs/CVEs --cwe CWE-639 --output ./precisebugs_processed_dataset
+
+# PrimeVul (paired)
+python data/collect_data.py primevul --paired --base-dir /project/flame/wyu3/PRM/PrimeVul_v0.1 --output /project/flame/wyu3/PRM/primevul_processed_dataset_paired
+
+# ReposVul
+python data/collect_data.py reposvul --base-dir /project/flame/wyu3/PRM/ReposVul --languages c cpp java python --output /project/flame/wyu3/PRM/reposvul_processed_dataset
+
+# SVEN
+python data/collect_data.py sven --base-dir /project/flame/wyu3/PRM/sven_git/sven/data_eval/trained --output /project/flame/wyu3/PRM/sven_processed_dataset
+
+# Concatenate multiple datasets
+python data/collect_data.py all --output /project/flame/wyu3/PRM/all_processed_dataset_31340
 ```
 
-#### 3. eval ensemble model benchmark
+Check each script's arguments and default paths before running.
+
+## Training
+
+Multi-stage training scripts live in `train/`.
+
 ```bash
-bash ./PRM/eval/moe.sh  
+bash train/train_stage_1.sh
+bash train/train_stage_2.sh
 ```
 
-#### 3. eval code generation benchmark
-```python
-python ./PRM/eval/ranking_code_bon_sven.py
+Update data paths and output directories inside the scripts as needed.
+
+## Evaluation
+
+Evaluation scripts live in `eval/`. Example (BoN ranking):
+
+```bash
+# CWEval
+python eval/ranking_code_bon.py cweval --generated_dir <dir> --prm_name <model> --name run
+
+# LiveCodeBench
+python eval/ranking_code_bon.py livecodebench --input_path <json> --prm_name <model> --name run
+
+# SVEN
+python eval/ranking_code_bon.py sven --output_dir <dir> --prm_name <model> --name run
 ```
-For CWEval, please refer to https://github.com/Co1lin/CWEval and note that they operate in docker.
-refer to https://github.com/Co1lin/CWEval?tab=readme-ov-file#2-generate-llm-responses for generating the LLM responses, set -n as 10, 30, or 50, then use the following for BoN to get safer candidates.
-```python
-python ./PRM/eval/ranking_code_bon_cweval.py --gen_dir <your-gen-dir>
-```
 
-For HumanEval, please refer to https://github.com/bigcode-project/bigcodebench for installation.
+Other benchmarks and utilities can be found under `eval/`. 
+
+## Cite
 
 
-## Acknowledgement
+## License
 
+Add a LICENSE file before open sourcing and update this section accordingly.
