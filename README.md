@@ -27,22 +27,22 @@ Example data collection commands (see `data/collect_data.py` for all options):
 
 ```bash
 # BigVul
-python data/collect_data.py bigvul --output ./bigvul_processed_dataset
+python data/collect_data.py bigvul --output ./dataset/bigvul_processed_dataset
 
-# PreciseBugs
-python data/collect_data.py precise --dir /project/flame/wyu3/PRM/PreciseBugs/CVEs --cwe CWE-639 --output ./precisebugs_processed_dataset
+# PreciseBug: Download PreciseBugs from https://github.com/SophieHYe/PreciseBugs
+python data/collect_data.py precise --dir <your_precisebugs_dataset_path> --output ./dataset/precisebugs_processed_dataset
 
-# PrimeVul (paired)
-python data/collect_data.py primevul --paired --base-dir /project/flame/wyu3/PRM/PrimeVul_v0.1 --output /project/flame/wyu3/PRM/primevul_processed_dataset_paired
+# PrimeVul (paired) Download PrimeVul from https://github.com/DLVulDet/PrimeVul?tab=readme-ov-file#-primevul-dataset
+python data/collect_data.py primevul --paired --base-dir <your_primevul_dataset_path> --output ./dataset/primevul_processed_dataset_paired
 
-# ReposVul
-python data/collect_data.py reposvul --base-dir /project/flame/wyu3/PRM/ReposVul --languages c cpp java python --output /project/flame/wyu3/PRM/reposvul_processed_dataset
+# ReposVul Download ReposVul from https://github.com/Eshe0922/ReposVul
+python data/collect_data.py reposvul --base-dir <your_reposvul_dataset_path>  --output ./dataset/reposvul_processed_dataset
 
-# SVEN
-python data/collect_data.py sven --base-dir /project/flame/wyu3/PRM/sven_git/sven/data_eval/trained --output /project/flame/wyu3/PRM/sven_processed_dataset
+# SVEN  Download SVEN from https://github.com/eth-sri/sven
+python data/collect_data.py sven --base-dir <your_sven_dataset_path> --output ./dataset/sven_processed_dataset
 
 # Concatenate multiple datasets
-python data/collect_data.py all --output /project/flame/wyu3/PRM/all_processed_dataset_31340
+python data/collect_data.py all --output ./dataset/all_processed_dataset_31340
 ```
 
 Check each script's arguments and default paths before running.
